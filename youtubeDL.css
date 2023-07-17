@@ -60,10 +60,13 @@ body {
 
     background-color: rgba(0, 0, 0, 0);
     
+    opacity: 0;
     transition: opacity ease-out 0.2s;
 }
 #youtubeDL-popup-bg.shown {
     background-color:rgba(0, 0, 0, 0.65);
+    
+    opacity: 1;
     pointer-events: all;
 }
 #youtubeDL-popup-bg > div * {
