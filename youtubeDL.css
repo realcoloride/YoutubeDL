@@ -60,7 +60,6 @@ body {
 
     background-color: rgba(0, 0, 0, 0);
     
-    pointer-events: auto;
     opacity: 0;
     transition: opacity ease-out 0.2s;
 }
@@ -68,7 +67,6 @@ body {
     background-color:rgba(0, 0, 0, 0.65);
     
     opacity: 1;
-    pointer-events: auto;
 }
 #youtubeDL-popup-bg > div * {
     opacity: 1;
