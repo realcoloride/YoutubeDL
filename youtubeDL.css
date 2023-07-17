@@ -1,0 +1,195 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto&display=swap');
+
+body {
+    background-color: rgb(0,0,5);
+}
+
+.youtubeDL-button {
+    background-color: rgba(255, 255, 255, 0.25);
+    color: rgba(255, 255, 255, 1);
+
+    cursor: pointer;
+
+    height: 36px;
+
+    border-style: solid;
+    border-color: rgba(255, 255, 255, 0);
+    border-width: 1px;
+
+    border-radius: 18px;
+    
+    transition: 0.05s ease-out;
+}
+.youtubeDL-button > span {
+    font-weight: 500;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+.youtubeDL-button:active {
+    border-color: rgba(255, 255, 255, 1);
+}
+.youtubeDL-button:disabled {
+    background-color: rgba(115, 115, 115, 0.16);
+    border-color: rgba(255, 255, 255, 0);
+    color: rgba(255, 255, 255, 0.566);
+    cursor: not-allowed;
+}
+
+.youtubeDL-button.light {
+    background-color: rgba(0, 0, 0, 0.35);
+    color: rgba(255, 255, 255, 0.895)
+}
+.youtubeDL-button.light:active {
+    border-color: rgba(0, 0, 5, 1);
+}
+.youtubeDL-button.light:disabled {
+    background-color: rgba(255, 255, 255, 0.525);
+    border-color: rgba(255, 255, 255, 0);
+    color: rgba(0, 0, 5, 0.8);
+    cursor: not-allowed;
+}
+
+#youtubeDL-popup-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    
+    z-index: 999;
+
+    background-color: rgba(0, 0, 0, 0);
+    
+    transition: opacity ease-out 0.2s;
+}
+#youtubeDL-popup-bg.shown {
+    background-color:rgba(0, 0, 0, 0.65);
+    pointer-events: all;
+}
+#youtubeDL-popup-bg > div * {
+    opacity: 1;
+}
+
+.youtubeDL-text {
+    font-family: "Roboto","Arial",sans-serif;
+    font-size: 14px;
+    
+    color: rgba(255, 255, 255, 1);
+}
+.youtubeDL-text.light {
+    color: rgba(0, 0, 5, 1);
+}
+
+.youtubeDL-row {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    padding: 6px;
+
+    justify-content: flex-end;
+}
+.youtubeDL-row.light {
+    background-color: rgba(0, 0, 0, 0.2);
+}
+.youtubeDL-row > span {
+    padding-right: 16px;
+}
+
+#youtubeDL-popup.light > span {
+    color: rgba(0, 0, 5, 1);
+}
+.youtubeDL-text.bigger {
+    font-size: 22px;
+}
+.youtubeDL-text.medium {
+    font-size: 18px;
+}
+.youtubeDL-text.center {
+    text-align: center;
+}
+.youtubeDL-text.float {
+    display: block;
+    align-items: center;
+    justify-content: center;
+}
+
+.youtubeDL-align.right {
+    position: absolute;
+    top: 12px;
+    display: block;
+    right: 1em;
+}
+
+.youtubeDL-logo {
+    width: 36px;
+    height: 36px;
+    transform: translate(0px, 10px);
+    padding-right: 4px;
+}
+
+#youtubeDL-popup > hr {
+    border-radius: 2px;
+}
+
+#youtubeDL-popup {
+    background-color: #212121;
+
+    border-radius: 12px;
+
+    position: absolute;
+
+    width: 460px;
+
+    padding: 8px;
+
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+#youtubeDL-popup.light {
+    background-color: #fff;
+}
+
+#youtubeDL-quality-table {
+    border-radius: 4px;
+
+    border-collapse: collapse;
+    overflow: hidden;
+    text-align: center;
+    align-items: center;
+}
+
+.youtubeDL-column {
+    background-color: rgba(164, 164, 164, 0.70);
+    padding-bottom: 4px;
+}
+.youtubeDL-column.light {
+    background-color: rgba(37, 37, 37, 0.70);
+}
+.youtubeDL-column:first-child {
+    border-radius: 16px 0px 0px 0px;
+}
+.youtubeDL-column:last-child {
+    border-radius: 0px 16px 0px 0px;
+}
+
+.youtubeDL-row-element {
+    padding: 5px;
+    border: none;
+}
+
+.youtubeDL-credits {
+    margin-top: 8px;
+    padding: 6px;
+    border-radius: 4px;
+    background-color: rgba(164, 164, 164, 0.10);
+}
+.youtubeDL-credits.light {
+    background-color: rgba(37, 37, 37, 0.10);
+}
+.youtubeDL-credits > a {
+    padding-right: 6px;
+    display: inline-flex;
+}
+.youtubeDL-credits > a > img {
+    margin-right: 3px;
+}
