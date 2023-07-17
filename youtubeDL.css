@@ -60,6 +60,7 @@ body {
 
     background-color: rgba(0, 0, 0, 0);
     
+    pointer-events: none;
     opacity: 0;
     transition: opacity ease-out 0.2s;
 }
