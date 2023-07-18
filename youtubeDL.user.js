@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YoutubeDL
 // @namespace    https://www.youtube.com/
-// @version      1.0
+// @version      1.0.1
 // @description  Download youtube videos at the comfort of your browser.
 // @author       realcoloride
 // @match        https://www.youtube.com/*
@@ -98,13 +98,15 @@
                     <a href="{asset}allow.gif" target="_blank"><strong>"ALWAYS ALLOW ALL DOMAINS"</strong></a>
                     
                     WHEN DOWNLOADING FOR THE FIRST TIME.
+                    
+                    <span class="youtubeDL-text center float">Some providers may have a bigger file size than estimated.</span>
                     </span>
                     
                     <table id="youtubeDL-quality-table" style="width: 100%; border-spacing: 0;">
                         <thead class="youtubeDL-row">
                             <th class="youtubeDL-column youtubeDL-text">Format</th>
                             <th class="youtubeDL-column youtubeDL-text">Quality</th>
-                            <th class="youtubeDL-column youtubeDL-text">Size</th>
+                            <th class="youtubeDL-column youtubeDL-text">Estimated Size</th>
                             <th class="youtubeDL-column youtubeDL-text">Download</th>
                         </thead>
                         <tbody id="youtubeDL-quality-container">
@@ -146,6 +148,30 @@
     };
 
     // Fetching
+    function convertSizeToBytes(size) {
+        const units = {
+            B: 1,
+            KB: 1024,
+            MB: 1024 * 1024,
+            GB: 1024 * 1024 * 1024,
+        };
+      
+        const regex = /^(\d+(?:\.\d+)?)\s*([A-Z]+)$/i;
+        const match = size.match(regex);
+      
+        if (!match) {
+            throw new Error('Invalid size format');
+        }
+      
+        const value = parseFloat(match[1]);
+        const unit = match[2].toUpperCase();
+      
+        if (!units.hasOwnProperty(unit)) {
+            throw new Error('Invalid size unit');
+        }
+      
+        return value * units[unit];
+    }     
     function decipherVariables(variableString) {
         const variableDict = {};
       
@@ -404,7 +430,14 @@
             headers: downloadHeaders,
             url: url,
             responseType: 'blob',
-            onload: function(response) {
+            onload: async function(response) {
+                console.log(response);
+                if (response.status == 403) { 
+                    alert("[YoutubeDL] Media expired or may be impossible to download, please retry or try with another format, sorry!"); 
+                    await reloadMedia(); 
+                    return; 
+                }
+                
                 const blob = response.response;
                 const link = document.createElement('a');
 
@@ -498,8 +531,8 @@
 
                 extension = extension.replace(/ \(audio\)|kbps/g, '');
                 quality = quality.replace(/ \(audio\)|kbps/g, '');
-                let filename = `YoutubeDL-${videoTitle}-${quality}.${extension}`;
-                if (extension == "mp3") filename = `YoutubeDL-${videoTitle}.${extension}`;
+                let filename = `YoutubeDL_${videoTitle}_${quality}.${extension}`;
+                if (extension == "mp3") filename = `YoutubeDL_${videoTitle}.${extension}`;
                 
                 const conversionRequest = await startConversion(extension, quality, timeExpires, token, filename, downloadButton);
                 const conversionStatus = conversionRequest.c_status;
@@ -517,11 +550,11 @@
                 console.error(error);
 
                 downloadButton.disabled = true;
-                downloadButton.textContent = "Download failed";
+                updatePopupButton(downloadButton, '');
 
                 setTimeout(() => {
                     downloadButton.disabled = false;
-                    downloadButton.textContent = "Download";
+                    updatePopupButton(downloadButton, 'Download');
                 }, 2000);
             }
         });
@@ -548,8 +581,13 @@
                 const quality = information.q;
                 let size = information.size;
 
-                if (size == 'MB') size = 'Unknown';
+                const regex = /\s[BKMGT]?B/;
+                const unit = size.match(regex)[0];
+                const sizeNoUnit = size.replace(regex, "");
+                const roundedSize = Math.round(parseFloat(sizeNoUnit));
                 
+                size = `${roundedSize}${unit}`;
+
                 createMediaFile({
                     extension: format, 
                     quality,
@@ -577,9 +615,8 @@
             delete videoLinks["3gp@144p"];
 
             // Sort from highest to lowest quality
-            const qualities = {
-                // 1080 : 299
-            };
+            const qualities = {};
+
             for (const [qualityId, information] of Object.entries(videoLinks)) {
                 if (!information) continue;
 
@@ -590,13 +627,77 @@
                 qualities[quality] = qualityId;
             }
 
-            const newOrder = Object.keys(qualities).sort((a, b) => b - a);
+            const newOrder = Object.keys(qualities).sort((a, b) => a - b);
+
+            function swapKeys(object, victimKeys, targetKeys) {
+                const swappedObj = {};
+
+                victimKeys.forEach((key, index) => {
+                    swappedObj[targetKeys[index]] = object[key];
+                });
+
+                return swappedObj;
+            }
+            videoLinks = swapKeys(videoLinks, Object.keys(videoLinks), newOrder);
+             
+            // Bubble swapping estimated qualities if incorrect (by provider) 
+            function bubbleSwap() {
+                const videoLinkIds = Object.keys(videoLinks);
+                videoLinkIds.forEach((qualityId) => {
+                    const currentQualityInformation = videoLinks[qualityId];
+                    if (!currentQualityInformation) return;
+
+                    const currentQualityIndex = videoLinkIds.findIndex((id) => id === qualityId);
+                    if (currentQualityIndex - 1 < 0) return;
+
+                    const previousQualityIndex = currentQualityIndex - 1;
+                    const previousQualityId = videoLinkIds[previousQualityIndex];
+
+                    if (!previousQualityId) return;
+
+                    const previousQualityInformation = videoLinks[previousQualityId];
+
+                    function getQualityOf(information) {
+                        const qualityName = information.q;
+                        const strippedQualityName = qualityName.replace('p', '');
+                        const quality = parseInt(strippedQualityName);
+
+                        return { qualityName, strippedQualityName, quality };
+                    }
+
+                    const previousQuality = getQualityOf(previousQualityInformation);
+                    const currentQuality = getQualityOf(currentQualityInformation);
+
+                    function swap() {
+                        console.log(`[YoutubeDL] Swapping incorrect formats: [${previousQuality.qualityName}] ${previousQualityInformation.size} -> [${currentQuality.qualityName}] ${currentQualityInformation.size}`);
+
+                        const previousClone = { ... previousQualityInformation};
+                        const currentClone = { ... currentQualityInformation};
+
+                        previousQualityInformation.size = currentClone.size;
+                        currentQualityInformation.size = previousClone.size;
+                    }
+
+                    const previousSize = previousQualityInformation.size;
+                    const previousSizeBytes = convertSizeToBytes(previousSize);
+
+                    const currentSize = currentQualityInformation.size;
+                    const currentSizeBytes = convertSizeToBytes(currentSize);
+
+                    if (previousSizeBytes < currentSizeBytes) swap();
+                });
+            };
+
+            for (let i = 0; i < Object.keys(videoLinks).length; i++) bubbleSwap();
             
-            for (let i = 0; i < newOrder.length; i++) {
-                const strippedQualityName = newOrder[i];
-                const qualityId = qualities[strippedQualityName];
-                const information = videoLinks[qualityId];
-                
+            for (const [qualityId, information] of Object.entries(videoLinks)) {
+                if (!information) continue;
+
+                const qualityName = information.q;
+                const strippedQualityName = qualityName.replace('p', '');
+                const quality = parseInt(strippedQualityName);
+
+                qualities[quality] = qualityId;
                 addFormat(information);
             }
 
@@ -605,12 +706,13 @@
             console.error("[YoutubeDL] Failed loading media:", error);
             alert("[YoutubeDL] Failed fetching media.\n" +
             "This could be either because:\n" +
-            "- The video is copyrighted or uses copyrighted material\n" +
+            "- An unhandled error\n" +
             "- Your tampermonkey settings\n" +
             "or an issue with the API.\n\n" +
-            "Unless its because of copyright (sorry!), try to refresh the page, otherwise, reinstall the plugin.")
+            "Try to refresh the page, otherwise, reinstall the plugin.")
 
             togglePopup();
+            popupElement.hidden = true;
         }
     }
     let isLoadingMedia = false;
@@ -807,7 +909,7 @@
                 setTimeout(() => {
                     popupElement.hidden = true;
                 }, 200);
-            } catch(error) {console.error(error);}
+            } catch (error) {console.error(error);}
         });
     }
 
