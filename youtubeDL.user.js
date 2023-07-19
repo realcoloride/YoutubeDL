@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YoutubeDL
 // @namespace    https://www.youtube.com/
-// @version      1.0.1
+// @version      1.0.2
 // @description  Download youtube videos at the comfort of your browser.
 // @author       realcoloride
 // @match        https://www.youtube.com/*
@@ -159,16 +159,12 @@
         const regex = /^(\d+(?:\.\d+)?)\s*([A-Z]+)$/i;
         const match = size.match(regex);
       
-        if (!match) {
-            throw new Error('Invalid size format');
-        }
+        if (!match) return 0;
       
         const value = parseFloat(match[1]);
         const unit = match[2].toUpperCase();
       
-        if (!units.hasOwnProperty(unit)) {
-            throw new Error('Invalid size unit');
-        }
+        if (!units.hasOwnProperty(unit)) return 0;
       
         return value * units[unit];
     }     
@@ -431,7 +427,6 @@
             url: url,
             responseType: 'blob',
             onload: async function(response) {
-                console.log(response);
                 if (response.status == 403) { 
                     alert("[YoutubeDL] Media expired or may be impossible to download, please retry or try with another format, sorry!"); 
                     await reloadMedia(); 
