@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YoutubeDL
 // @namespace    https://www.youtube.com/
-// @version      1.0.2
+// @version      1.0.3
 // @description  Download youtube videos at the comfort of your browser.
 // @author       realcoloride
 // @match        https://www.youtube.com/*
@@ -332,8 +332,14 @@
                         const conversionUrl = await gatherResult();
                         adaptedResponse.d_url = conversionUrl;
                     } catch (error) {
-                        console.error("[YoutubeDL] Error while checking for job converstion: ", error);
+                        console.error("[YoutubeDL] Error while checking for job converstion:", error);
                         adaptedResponse.c_status = 'error';
+
+                        updatePopupButton(button, 'Converting Failed'); 
+                        setTimeout(() => {
+                            button.disabled = false;
+                            updatePopupButton(button, 'Download');
+                        }, 1000);
                     }
                 }
 
