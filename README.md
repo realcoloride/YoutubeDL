@@ -53,6 +53,8 @@
 🚩 Feel free to open an [Issue](https://github.com/realcoloride/TwitterDL/issues) to suggest something, give feedback or other and 
 **feel free to put a review on the Greasyfork page and star this repository.** 👍
 
+☕ If you wish to support me, you can send me a coffee on ko.fi: https://ko-fi.com/coloride
+
 # License
 🤝 Distributed with the MIT License. (real)coloride - 2023
 
