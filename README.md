@@ -56,6 +56,6 @@
 ☕ If you wish to support me, you can send me a coffee on ko.fi: https://ko-fi.com/coloride
 
 # License
-🤝 Distributed with the MIT License. (real)coloride - 2023
+🤝 Distributed with the MIT License. (real)coloride - 2023-2024
 
 ❤️ If you like this script, please check out [my other Tampermonkey scripts](https://greasyfork.org/fr/users/1070263-realcoloride).
