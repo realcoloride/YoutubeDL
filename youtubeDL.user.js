@@ -947,8 +947,6 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
 
         popupElement.classList.toggle("shown");
 
-        console.trace("bruh the choppa");
-
         if (waitingReload) {reloadMedia(); waitingReload = false;}
         else loadMedia();
 
