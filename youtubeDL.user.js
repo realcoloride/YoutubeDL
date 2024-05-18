@@ -1,13 +1,14 @@
 // ==UserScript==
 // @name         YoutubeDL
 // @namespace    https://www.youtube.com/
-// @version      1.0.3
+// @version      1.1.0
 // @description  Download youtube videos at the comfort of your browser.
 // @author       realcoloride
 // @match        https://www.youtube.com/*
 // @match        https://www.youtube.com/watch*
 // @match        https://www.youtube.com/shorts*
 // @match        https://www.youtube.com/embed*
+// @match        */*
 // @connect      savetube.io
 // @connect      googlevideo.com
 // @connect      aadika.xyz
@@ -83,8 +84,6 @@
                     </button>
                 </span>
 
-                <hr style="height:3px">
-
                 <div id="youtubeDL-loading">
                     <span class="youtubeDL-text medium center float" style="display: flex;">
                         <img src="{asset}loading.svg" style="width:21px; padding-right: 6px;"> Loading...
@@ -116,7 +115,7 @@
                 </div>
 
                 <div class="youtubeDL-credits">
-                    <span class="youtubeDL-text medium">YoutubeDL by (real)coloride - 2023</span>
+                    <span class="youtubeDL-text medium">YoutubeDL by (real)coloride - 2023-2024</span>
                     <br>
                     <a class="youtubeDL-text medium" href="https://www.github.com/realcoloride/YoutubeDL">
                         <img src="{asset}github.png" width="21px">Github</a>
@@ -128,8 +127,20 @@
             </div>
     `;
     
+    const pageLoadingFailedMessage = `[YoutubeDL] An error has occured while fetching data.
+
+This can possibly mean your firewall or IP might be blocking the requests and make sure you've set up the proper permissions to the script.
+Please check your firewall or try using a VPN.`;
+
+    const mediaErrorMessage = `[YoutubeDL] Failed fetching media.
+
+This could be either because:
+- An unhandled error
+- Your tampermonkey settings
+or an issue with the API.
+Try to refresh the page, otherwise, reinstall the plugin.`;
+
     // Element definitions
-    
     const ytdAppContainer = document.querySelector("ytd-app");
     let popupElement;
 
@@ -137,7 +148,7 @@
     function getVideoInformation(url) {
         const regex = /(?:https?:\/\/(?:www\.)?youtube\.com\/(?:watch\?v=|shorts\/|embed\/)?)([\w-]+)/i;
         const match = regex.exec(url);
-        const videoId = match ? match[1] : null;
+        let videoId = match ? match[1] : null;
         
         let type = null;
         if (url.includes("/shorts/"))       type = "shorts";
@@ -146,6 +157,9 @@
         
         return { type, videoId };
     };
+    function getVideoUrlFromEmbed(player) {
+        return player.parentNode.parentNode.documentURI || window.location.href; // in case not in embed but in embed page itself
+    }
 
     // Fetching
     function convertSizeToBytes(size) {
@@ -188,6 +202,8 @@
         return currentTimestamp > timestamp;
     }
     async function fetchPageInformation() {
+        if (pageInformation.searchEndpoint != null || window.self !== window.top) return;
+
         // Scrapping internal values
         const pageRequest = await GM.xmlHttpRequest({
             url: `${pageInformation.website}`,
@@ -365,7 +381,9 @@
         formData.append('vt', 'home');
         const requestBody = new URLSearchParams(formData).toString();
 
-        let result = null;
+        let result = {
+            status: 'notok'
+        };
 
         try {
             const request = await GM.xmlHttpRequest({
@@ -378,7 +396,8 @@
             
             result = JSON.parse(request.responseText);
         } catch (error) {
-            return null;
+            console.error(error);
+            return result;
         }
 
         return result;
@@ -389,7 +408,6 @@
         if (videoInformation.type == 'embed') return true;
         
         const computedStyles = window.getComputedStyle(ytdAppContainer);
-
         const backgroundColor = computedStyles["background-color"];
 
         return backgroundColor.endsWith('15)');
@@ -520,7 +538,7 @@
         downloadButton.ariaLabel = "Download";
         updatePopupButton(downloadButton, "Download");
 
-        downloadButton.addEventListener("click", async(event) => {
+        downloadButton.addEventListener("click", async(_) => {
             try {
                 downloadButton.disabled = true;
                 updatePopupButton(downloadButton, "Fetching info...");
@@ -565,6 +583,7 @@
 
         qualityContainer.appendChild(row);
     }
+    let hasMediaError = false;
     async function loadMediaFromLinks(response) {
         try {
             const links = response.links;
@@ -705,12 +724,10 @@
             if (low3gpFormat) addFormat(low3gpFormat);
         } catch (error) {
             console.error("[YoutubeDL] Failed loading media:", error);
-            alert("[YoutubeDL] Failed fetching media.\n" +
-            "This could be either because:\n" +
-            "- An unhandled error\n" +
-            "- Your tampermonkey settings\n" +
-            "or an issue with the API.\n\n" +
-            "Try to refresh the page, otherwise, reinstall the plugin.")
+            alert(mediaErrorMessage);
+            hasMediaError = true;
+
+            showErrorOnDownloadButtons();
 
             togglePopup();
             popupElement.hidden = true;
@@ -775,26 +792,164 @@
         loadingBar.hidden = !loading;
         qualityContainer.hidden = loading;
     }
+
+    let hasPreparedForOuterInjection = false;
+    let hasOuterInjectedFromTop = false;
+    function prepareOuterInjection() {
+        // check if in top window or already prepared
+        if (window.self !== window.top || hasPreparedForOuterInjection) return;
+
+        // check if link is different (other pages than youtube's)
+        const youtubeRegex = /(?:https?:\/\/(?:www\.)?youtube\.com\/(?:watch\?v=|shorts\/|embed\/)?)([\w-]+)/i;
+        if (youtubeRegex.test(window.location.href)) return;
+
+        window.top.addEventListener('message', async (event) => {
+            if (typeof(event.data) != 'object' || !event.isTrusted) return;
+
+            const data = event.data;
+
+            const title = data["title"];
+            const object = data["object"];
+            if (title == null) return;
+
+            // check if in youtube no cookie domain (with extra acceptance for regular youtube embed)
+            if (event.origin === "https://www.youtube.com/" ||
+                event.origin === "https://www.youtube-nocookie.com/") return;
+
+            switch (title) {
+                case "YoutubeDL_outerInject":
+                    if (hasOuterInjectedFromTop) return;
+                    // cross window communication for proxy windows to have interactivity
+                    try {
+                        // show flickering and loading
+                        sendToBottomWindows("YoutubeDL_topLoadingShow", true);
+
+                        // load everything needed on top window if not done
+                        console.log("[YoutubeDL/Proxy] Fetching page information...");
+                        await fetchPageInformation();
+
+                        console.log("[YoutubeDL/Proxy] Loading custom styles...");
+                        await injectStyles();
+                
+                        console.log("[YoutubeDL/Proxy] Loading popup...");
+                        injectPopup();
+                        
+                        hasOuterInjectedFromTop = true;
+                        
+                        sendToBottomWindows("YoutubeDL_topLoadingShow", false);
+                    } catch (error) {
+                        sendToBottomWindows("YoutubeDL_topLoadingShow", false);
+                        sendToBottomWindows("YoutubeDL_showError", error);
+                    }
+
+                    break;
+                case "YoutubeDL_togglePopup":
+                    togglePopup();
+                    break;
+                case "YoutubeDL_togglePopupElement":
+                    await togglePopupElement(object);
+                    break;
+            }
+        });
+
+        hasPreparedForOuterInjection = true;
+        console.log("[YoutubeDL] Has prepared for outer injection.");
+    }
+    let hasPreparedForInnerProxyInjection = false;
+    let outerProxyLoading = false;
+    function prepareOuterInjectionForProxy() {
+        // check if in top window or already prepared
+        if (window.self === window.top || hasPreparedForInnerProxyInjection) return;
+
+        window.self.addEventListener('message', async (event) => {
+            if (typeof(event.data) != 'object' || !event.isTrusted) return;
+
+            const data = event.data;
+
+            const title = data["title"];
+            const object = data["object"];
+            const passcode = data["passcode"];
+            if (title == null || passcode != "spaghetti") return;
+
+            switch (title) {
+                case "YoutubeDL_topLoadingShow":
+                    // object is now a boolean
+                    const downloadButtonImage = document.querySelector("#youtubeDL-download > img");
+                    if (downloadButtonImage == null) return;
+
+                    console.log("YoutubeDL RECEIVED TOP LOADING SHOW : ", object);
+
+                    outerProxyLoading = object;
+                    // set loading icon and flicker if loading else reset
+                    downloadButtonImage.src = getAsset(object == true ? "YoutubeDL-loading.png" : "YoutubeDL.png");
+
+                    if (object == true) downloadButtonImage.classList.add("youtubeDL-flicker");
+                    else                downloadButtonImage.classList.remove("youtubeDL-flicker");
+
+                    break;
+                case "YoutubeDL_showError":
+                    console.error("YoutubeDL", object);
+                    break;
+            }
+        });
+
+        hasPreparedForInnerProxyInjection = true;
+    }
     function injectPopup() {
         /*<div id="youtubeDL-popup-bg" class="shown">
             
         </div>*/
+        // if in proxy window/embed
+        if (window.self !== window.top) {
+            console.log("[YoutubeDL] Embed or internal window detected. Outer-injecting the popup of the iframe.");
+            
+            // outer injection
+            sendToTopWindow("YoutubeDL_outerInject", null);
+            return;
+        }
+
+        // check if existing already then set
+        const existingElement = window.top.document.querySelector("#youtubeDL-popup-bg");
+        if (existingElement) {
+            popupElement = existingElement;
+            return;
+        }
+
         popupElement = document.createElement("div");
         popupElement.id = "youtubeDL-popup-bg";
+        // avoids replacement
+        popupElement.style = "line-height: initial; font-size: initial; z-index: " + Number.MAX_SAFE_INTEGER;
 
         const revisedHTML = popupHTML.replaceAll('{asset}', githubAssetEndpoint);
         popupElement.innerHTML = revisedHTML;
-        
+
         document.body.appendChild(popupElement);
 
         togglePopupLoading(true);
         createButtonConnections();
         popupElement.hidden = true;
     }
+    function sendToTopWindow(title, object) {
+        window.top.postMessage({ title, object }, '*');
+    }
+    function sendToBottomWindows(title, object) {
+        const iframes = document.querySelectorAll('iframe');
+        iframes.forEach((iframe) => iframe.contentWindow.postMessage({ title, object, passcode: "spaghetti" }, '*'));
+    }
+    
     let hideTimeout;
     let waitingReload = false;
     function togglePopup() {
+        // if proxy window, send message via outer injection
+        if (window.self !== window.top) {
+            // outer injection
+            sendToTopWindow("YoutubeDL_togglePopup", null);
+            return;
+        }
+
         popupElement.classList.toggle("shown");
+
+        console.trace("bruh the choppa");
 
         if (waitingReload) {reloadMedia(); waitingReload = false;}
         else loadMedia();
@@ -808,6 +963,32 @@
             }, 200);
         };
     }
+    async function togglePopupElement(embedLink) {
+        if (popupElement.hidden == false) return;
+        popupElement.hidden = false;
+        
+        const oldId = videoInformation.videoId;
+
+        if (embedLink != null) {
+            // reset video information
+            videoInformation = getVideoInformation(embedLink);
+
+            // youtube & no cookie support
+            // replace embed via normal page for api support
+            if (embedLink.includes('youtube.com/embed/') ||
+                embedLink.includes('youtube-nocookie.com/embed/')) {
+                const videoId = embedLink.split('/embed/')[1].split('?')[0];
+                videoInformation.type = 'embed';
+                videoInformation.videoId = videoId;
+            }
+        }
+
+        togglePopup();
+
+        // if changed from embed to another, reload media
+        if (oldId != videoInformation.videoId)
+            await reloadMedia();
+    }
     // Button
     let injectedShorts = [];
     function injectDownloadButton() {
@@ -815,15 +996,33 @@
         let style;
 
         const onShorts = (videoInformation.type == 'shorts');
-        
+        const onEmbed = (videoInformation.type == 'embed');
         if (onShorts) {
             // Button for shorts
             const playerControls = document.querySelectorAll('ytd-shorts-player-controls');
 
             targets = playerControls;
             style = "margin-bottom: 16px; transform: translateY(-15%); z-index: 999; pointer-events: auto;"
+        } else if (onEmbed) { 
+            // Get all embeds on the page
+            const controls = document.querySelectorAll(".ytp-left-controls");
+            for (let i = 0; i < controls.length; i++) {
+                const control = controls[i];
+                const player = control.parentNode.parentNode.parentNode.parentNode;
+
+                control.setAttribute(
+                    "embedLink", 
+                    // if on top window, you can directly fetch from the iframe
+                    // or else if in a proxy window, fetch directly from the location href
+                    window.self === window.top ? getVideoUrlFromEmbed(player) : window.self.location.href
+                );
+
+                targets.push(control);
+            }
+
+            style = "margin-top: 4px; transform: translateY(-7%); padding-left: 3px; display: flex;";
         } else {
-            // Button for embed and normal player
+            // Button for normal player
             targets.push(document.querySelector(".ytp-left-controls"));
             style = "margin-top: 4px; transform: translateY(5%); padding-left: 4px;";
         }
@@ -833,7 +1032,7 @@
 
             const downloadButton = document.createElement("button");
             downloadButton.classList.add("ytp-button");
-            downloadButton.innerHTML = `<img src="${getAsset("YoutubeDL.png")}" style="${style}" width="36" height="36">`;
+            downloadButton.innerHTML = `<img src="${getAsset(hasFailedLoadingPageInformation ? "YoutubeDL-warning.png" : "YoutubeDL.png")}" style="${style}" width="36" height="36">`;
     
             downloadButton.id = 'youtubeDL-download'
             downloadButton.setAttribute('data-title-no-tooltip', 'YoutubeDL');
@@ -845,12 +1044,32 @@
             downloadButton.setAttribute('href', '');
             downloadButton.setAttribute('title', 'Download Video');
     
-            downloadButton.addEventListener("click", (event) => {
-                if (popupElement.hidden) {
-                    popupElement.hidden = false;
-
-                    togglePopup();
+            downloadButton.addEventListener("click", async(_) => {
+                if (hasFailedLoadingPageInformation) {
+                    alert(pageLoadingFailedMessage);
+                    return;
                 }
+                if (hasMediaError) {
+                    alert(mediaErrorMessage);
+                    return;
+                }
+
+                // left controls
+                const embedLink = downloadButton.parentNode.getAttribute("embedLink");
+
+                // if we're in a proxy window/embed
+                if (window.self !== window.top) {
+                    console.log(`[YoutubeDL] Communicating to toggle popup (outer-proxy) | Linked iframe link: ${embedLink}`);
+
+                    if (outerProxyLoading) return;
+
+                    // outer injection
+                    sendToTopWindow("YoutubeDL_togglePopupElement", embedLink);
+                    return;
+                }
+
+                // else do regularly on top window
+                await togglePopupElement(embedLink);
             });
     
             const chapterContainer = target.querySelector('.ytp-chapter-container');
@@ -903,7 +1122,7 @@
     function createButtonConnections() {
         const closeButton = popupElement.querySelector("#youtubeDL-close");
 
-        closeButton.addEventListener('click', (event) => {
+        closeButton.addEventListener('click', (_) => {
             try {
                 togglePopup();
                 
@@ -914,7 +1133,17 @@
         });
     }
 
+    function showErrorOnDownloadButtons() {
+        const downloadButtonsImages = document.querySelectorAll("#youtubeDL-download > img");
+
+        for (let i = 0; i < downloadButtonsImages.length; i++) {
+            const downloadButtonImage = downloadButtonsImages[i];
+            downloadButtonImage.src = getAsset("YoutubeDL-warning.png");
+        }
+    }
+
     // Main page injection
+    let hasFailedLoadingPageInformation = false;
     async function injectAll() {
         if (preinjected) return;
         preinjected = true;
@@ -925,6 +1154,9 @@
         } catch (error) {
             isLoadingMedia = false;
             console.error("[YoutubeDL] Failed fetching page information: ", error);
+            hasFailedLoadingPageInformation = true;
+
+            showErrorOnDownloadButtons();
         }
 
         console.log("[YoutubeDL] Loading custom styles...");
@@ -958,20 +1190,57 @@
     function updateVideoInformation() {
         videoInformation = getVideoInformation(window.location.href);
     }
+    let embedRefreshInterval;
     function initialize() {
+        prepareOuterInjection();
+        prepareOuterInjectionForProxy();
         updateVideoInformation();
         if (!videoInformation.type) return;
         
-        console.log("[YoutubeDL] Loading... // (real)coloride - 2023");
+        console.log("[YoutubeDL] Loading... // (real)coloride - 2023-2024");
+
+        if (window.self === window.top) prepareOuterInjection();
 
         // Emebds: wait for user to press play
         const isEmbed = (videoInformation.type == 'embed');
         if (isEmbed) {
-            const player = document.querySelector("#player");
+            // if embed keep going until url changes
+            if (embedRefreshInterval != null) return;
 
-            player.addEventListener("click", async(event) => {
-                await injectAll();
-            });
+            // we have to handle when its executed in side of the embed and when outside (proxied windows)
+            if (window.self !== window.top) {
+                // if in proxy window, directly inject because the user would have already clicked
+                (async() => await injectAll())();
+                return;
+            }
+
+            // wait for click
+            function injectTo(player) {
+                player.addEventListener("click", async(_) => await injectAll()); 
+            }
+
+            // check if page is actual embed, get first player & inject (NOT autoplay)
+            const regex = /^(?!.*youtube-nocookie\.com).*youtube\.com\/embed\/\w+/;
+            if (regex.test(window.location.href)) {
+                injectTo(document.querySelector("#player"));
+                return;
+            }
+            
+            // else if in global window
+            const embeds = window.self.document.querySelectorAll('iframe[data-player="youtube"]');
+            if (embeds.length == 0) return;
+
+            // wait for click because of the youtube icon embed
+            for (let i = 0; i < players.length; i++) {
+                const embed = embeds[i];
+
+                const allowAttributes = embed.getAttribute("allow");
+
+                // check if on autoplay & if not inject only on click
+                if (!allowAttributes.includes('autoplay'))
+                    embed.addEventListener("click", async(_) => await injectAll());
+                else (async() => await injectAll())();
+            }
         } else {
             let injectionCheckInterval;
             injectionCheckInterval = setInterval(async() => {
@@ -985,8 +1254,6 @@
             }, 600);
         }
     }
-    
-    initialize();
 
     // Hot reswap 
     let loadedUrl = window.location.href;
@@ -997,6 +1264,7 @@
             console.log("[YoutubeDL] Detected URL Change");
 
             loadedUrl = currentUrl;
+            clearInterval(embedRefreshInterval);
 
             updateVideoInformation();
 
@@ -1008,6 +1276,8 @@
             if (videoInformation.type == 'shorts') injectDownloadButton();
         }
     }
+
+    initialize();
 
     setInterval(checkUrlChange, 500);
     window.onhashchange = checkUrlChange;
