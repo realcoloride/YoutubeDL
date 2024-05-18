@@ -1236,7 +1236,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
 
                 // check if on autoplay & if not inject only on click
                 if (!allowAttributes.includes('autoplay'))
-                    embed.addEventListener("click", async(_) => await injectAll());
+                    injectTo(embed);
                 else (async() => await injectAll())();
             }
         } else {
