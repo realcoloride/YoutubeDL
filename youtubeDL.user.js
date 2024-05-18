@@ -813,8 +813,8 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
             if (title == null) return;
 
             // check if in youtube no cookie domain (with extra acceptance for regular youtube embed)
-            if (event.origin !== "https://www.youtube.com/" ||
-                event.origin !== "https://www.youtube-nocookie.com/") return;
+            if (event.origin !== "https://www.youtube.com" &&
+                event.origin !== "https://www.youtube-nocookie.com") return;
 
             switch (title) {
                 case "YoutubeDL_outerInject":
