@@ -877,8 +877,6 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
                     const downloadButtonImage = document.querySelector("#youtubeDL-download > img");
                     if (downloadButtonImage == null) return;
 
-                    console.log("YoutubeDL RECEIVED TOP LOADING SHOW : ", object);
-
                     outerProxyLoading = object;
                     // set loading icon and flicker if loading else reset
                     downloadButtonImage.src = getAsset(object == true ? "YoutubeDL-loading.png" : "YoutubeDL.png");
