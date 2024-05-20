@@ -20,9 +20,11 @@
 
 #### *The icon on the player*
 
-![chrome_iaU6KLCgNk](https://github.com/realcoloride/YoutubeDL/assets/108619637/93061219-01e6-47b3-8597-03523756e9c1)
+![Icon on the player](https://github.com/realcoloride/YoutubeDL/assets/108619637/93061219-01e6-47b3-8597-03523756e9c1)
+
 ### Youtube Shorts
-![chrome_o6Umoz7Du0](https://github.com/realcoloride/YoutubeDL/assets/108619637/cedbb4ab-2c9d-461e-a7cd-0553d0df39fe)
+
+![YouTube Shorts](https://github.com/realcoloride/YoutubeDL/assets/108619637/9463dae9-17a2-41aa-b200-dc221bfeefe1)
 
 # Installation
 ### 🤐 Before you install...
