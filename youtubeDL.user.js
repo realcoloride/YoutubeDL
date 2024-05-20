@@ -766,7 +766,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
             console.error("[YoutubeDL] Failed fetching media.");
         }
 
-        if (!isLoadingMedia) {togglePopup(); return; };
+        if (!isLoadingMedia) { togglePopup(); return; };
 
         const request = await getMediaInformation();
         if (request.status != 'ok') { fail(); return; }
@@ -948,7 +948,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
 
         popupElement.classList.toggle("shown");
 
-        if (waitingReload) {reloadMedia(); waitingReload = false;}
+        if (waitingReload) { reloadMedia(); waitingReload = false;}
         else loadMedia();
 
         // Avoid overlap
@@ -1066,11 +1066,11 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
                 await togglePopupElement(embedLink);
             });
     
+            if (target.querySelector("#youtubeDL-download")) return;
+
             const chapterContainer = target.querySelector('.ytp-chapter-container');
 
             if (onShorts) {
-                if (target.querySelector("#youtubeDL-download")) return;
-
                 target.insertBefore(downloadButton, target.children[target.children.length]);
                 injectedShorts.push(target);
             } else {
