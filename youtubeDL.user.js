@@ -1018,7 +1018,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
         } else {
             // Button for normal player
             targets.push(document.querySelector(".ytp-left-controls"));
-            style = "margin-top: 4px; transform: translateY(5%); padding-left: 4px;";
+            style = "margin-top: 4px; transform: translateY(-10%); padding-left: 4px; display: flex;";
         }
 
         targets.forEach((target) => {
