@@ -127,12 +127,14 @@
             </div>
     `;
     
-    const pageLoadingFailedMessage = `[YoutubeDL] An error has occured while fetching data.
+    const pageLoadingFailedMessage = 
+`[YoutubeDL] An error has occured while fetching data.
 
 This can possibly mean your firewall or IP might be blocking the requests and make sure you've set up the proper permissions to the script.
 Please check your firewall or try using a VPN.`;
 
-    const mediaErrorMessage = `[YoutubeDL] Failed fetching media.
+    const mediaErrorMessage = 
+`[YoutubeDL] Failed fetching media.
 
 This could be either because:
 - An unhandled error
@@ -189,7 +191,6 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
       
         variableAssignments.forEach((assignment) => {
             const [, variableName, variableValue] = assignment.match(/var\s+(\w+)\s*=\s*['"](.+?)['"];/);
-        
             const trimmedValue = variableValue.trim().replace(/^['"]|['"]$/g, '');
         
             variableDict[variableName] = trimmedValue;
@@ -954,9 +955,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
         if (popupElement.hidden) {
             clearTimeout(hideTimeout);
 
-            hideTimeout = setTimeout(() => {
-                popupElement.hidden = false;
-            }, 200);
+            hideTimeout = setTimeout(() => popupElement.hidden = false, 200);
         };
     }
     async function togglePopupElement(embedLink) {
@@ -998,7 +997,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
             const playerControls = document.querySelectorAll('ytd-shorts-player-controls');
 
             targets = playerControls;
-            style = "margin-bottom: 16px; transform: translateY(-15%); z-index: 999; pointer-events: auto;"
+            style = "margin-bottom: 16px; transform: translate(36%, 10%); pointer-events: auto;";
         } else if (onEmbed) { 
             // Get all embeds on the page
             const controls = document.querySelectorAll(".ytp-left-controls");
@@ -1071,7 +1070,9 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
             const chapterContainer = target.querySelector('.ytp-chapter-container');
 
             if (onShorts) {
-                target.insertBefore(downloadButton, target.children[1])
+                if (target.querySelector("#youtubeDL-download")) return;
+
+                target.insertBefore(downloadButton, target.children[target.children.length]);
                 injectedShorts.push(target);
             } else {
                 if (chapterContainer) {
@@ -1095,9 +1096,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
                         style.innerHTML = response.responseText;
                         document.head.appendChild(style);
                         resolve();
-                    } else {
-                        reject(new Error('Failed to load CSS'));
-                    }
+                    } else reject(new Error('Failed to load CSS'));
                 }
             });
         });
@@ -1122,9 +1121,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
             try {
                 togglePopup();
                 
-                setTimeout(() => {
-                    popupElement.hidden = true;
-                }, 200);
+                setTimeout(() => popupElement.hidden = true, 200);
             } catch (error) {console.error(error);}
         });
     }
@@ -1140,7 +1137,14 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
 
     // Main page injection
     let hasFailedLoadingPageInformation = false;
+    let didFirstShortsInjection = false;
     async function injectAll() {
+        // double check
+        if (videoInformation.type == 'shorts' && !didFirstShortsInjection) {
+            didFirstShortsInjection = true;
+            injectDownloadButton();
+        }
+
         if (preinjected) return;
         preinjected = true;
 
