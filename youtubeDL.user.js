@@ -887,7 +887,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
 
                     break;
                 case "YoutubeDL_showError":
-                    console.error("YoutubeDL", object);
+                    console.error("[YoutubeDL] Error coming from proxy window:", object);
                     break;
             }
         });
@@ -995,7 +995,6 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
         if (onShorts) {
             // Button for shorts
             const playerControls = document.querySelectorAll('ytd-shorts-player-controls');
-
             targets = playerControls;
             style = "margin-bottom: 16px; transform: translate(36%, 10%); pointer-events: auto;";
         } else if (onEmbed) { 
@@ -1141,8 +1140,8 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
     async function injectAll() {
         // double check
         if (videoInformation.type == 'shorts' && !didFirstShortsInjection) {
-            didFirstShortsInjection = true;
             injectDownloadButton();
+            didFirstShortsInjection = true;
         }
 
         if (preinjected) return;
@@ -1266,7 +1265,11 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
             loadedUrl = currentUrl;
             clearInterval(embedRefreshInterval);
 
+            didFirstShortsInjection = false;
+
             updateVideoInformation();
+
+            console.log(`[YoutubeDL] Detected video type: ${videoInformation.type}`);
 
             if (!videoInformation.type) return;
 
