@@ -27,7 +27,7 @@
 
     let pageInformation = {
         loaded : false,
-        website : "https://snapsave.io/en52",
+        website : "https://savetube.io/",
         searchEndpoint : null,
         convertEndpoint : null,
         checkingEndpoint : null,
@@ -44,15 +44,16 @@
 
     let videoInformation;
     const fetchHeaders = {
-        'Accept': '*/*',
-        'Accept-Language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7',
-        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-        'Sec-Ch-Ua': '"Not.A/Brand";v="8", "Chromium";v="114", "Google Chrome";v="114"',
-        'Sec-Ch-Ua-Mobile': '?0',
-        'Sec-Ch-Ua-Platform': '"Windows"',
-        'Sec-Fetch-Dest': 'empty',
-        'Sec-Fetch-Mode': 'cors',
-        'Sec-Fetch-Site': 'none',
+        "accept": "*/*",
+        "accept-language": "en-US,en;q=0.9",
+        "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+        "priority": "u=1, i",
+        "sec-ch-ua": "\"Google Chrome\";v=\"125\", \"Chromium\";v=\"125\", \"Not.A/Brand\";v=\"24\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Windows\"",
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "same-origin",
     };
     const convertHeaders = {
         "accept": "*/*",
@@ -221,9 +222,11 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
 
             // Scrapping internal values
             const pageRequest = await GM.xmlHttpRequest({
-                url: `${pageInformation.website}`,
+                url: pageInformation.website,
                 method: "GET",
+                referrerPolicy: "strict-origin-when-cross-origin",
                 headers: fetchHeaders,
+                credentials: "include"
             });
     
             const parser = new DOMParser();
@@ -395,10 +398,6 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
         if (!videoType) return;
 
         const formData = new FormData();
-        const { k__token, k_time } = pageInformation.pageValues;
-
-        formData.append('k_exp', k_time);
-        formData.append('k_token', k__token);
         formData.append('q', `https://www.youtube.com/watch?v=${videoId}`);
         formData.append('vt', 'home');
         const requestBody = new URLSearchParams(formData).toString();
@@ -407,7 +406,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
             status: 'notok'
         };
 
-        try {
+        async function tryRequest() {
             const request = await GM.xmlHttpRequest({
                 url: pageInformation.searchEndpoint,
                 method: "POST",
@@ -417,6 +416,21 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
             });
 
             result = JSON.parse(request.responseText);
+        }
+
+        try {
+            await tryRequest();
+
+            // first retry with extra form details (sometimes some domain require it for some reason)
+            if (result.status == 'error') {
+                const { k__token, k_time } = pageInformation.pageValues;
+
+                formData.append('k_exp', k_time);
+                formData.append('k_token', k__token);
+                await tryRequest();
+            }
+
+            // after that consider it as total failure
             if (result.status == 'error') throw new Error(request.responseText);
         } catch (error) {
             console.error(error);
@@ -979,7 +993,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
         }
 
         checkUrlChange();
-        
+
         if (needsUpdate) showNewUpdateText(needsUpdate);
         popupElement.classList.toggle("shown");
 
