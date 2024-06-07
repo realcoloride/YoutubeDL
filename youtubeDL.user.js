@@ -14,6 +14,7 @@
 // @connect      aadika.xyz
 // @connect      dlsnap11.xyz
 // @connect      dlsnap06.xyz
+// @connect      dlsnap02.xyz
 // @connect      githubusercontent.com
 // @connect      greasyfork.org
 // @connect      *
@@ -21,6 +22,8 @@
 // @license      MIT
 // @grant        GM_xmlhttpRequest
 // @grant        GM.xmlHttpRequest
+// @grant        GM_openInTab
+// @grant        GM.openInTab
 // ==/UserScript==
 
 (function() {
@@ -516,6 +519,16 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
                 setTimeout(finish, 1000);
             },
             onerror: function(error) {
+                if (error.finalUrl == url) {
+                    GM.openInTab(url);
+
+                    updatePopupButton(button, 'Downloaded!');
+                    button.disabled = false;
+
+                    setTimeout(finish, 1000);
+                    return;
+                }
+
                 console.error('[YoutubeDL] Download Error:', error);
                 updatePopupButton(button, 'Download Failed');
                 
@@ -636,7 +649,6 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
             const timeExpires = response.timeExpires;
             const videoTitle = response.title;
 
-            // console.log(response);
             const audioLinks = links.mp3;
             let videoLinks = links.mp4;
 
