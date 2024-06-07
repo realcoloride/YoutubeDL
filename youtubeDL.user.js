@@ -266,7 +266,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
         initialFormData.append('fquality', fileQuality);
         initialFormData.append('token', token);
         initialFormData.append('timeExpire', timeExpires);
-        initialFormData.append('client', 'yt5s.io');
+        initialFormData.append('client', 'SnapSave.io');
         const initialRequestBody = new URLSearchParams(initialFormData).toString();
 
         let result = null;
@@ -402,6 +402,8 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
         formData.append('vt', 'home');
         const requestBody = new URLSearchParams(formData).toString();
 
+        console.log("YOUTUBEDL DEBUG INFO: ", pageInformation);
+
         let result = {
             status: 'notok'
         };
@@ -415,6 +417,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
                 responseType: 'text',
             });
 
+            console.log("YOUTUBEDL DEBUG INFO 2: ", request.responseText);
             result = JSON.parse(request.responseText);
         }
 
