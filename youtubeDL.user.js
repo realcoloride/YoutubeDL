@@ -19,6 +19,7 @@
 // @connect      *
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=youtube.com
 // @license      MIT
+// @grant        GM_xmlhttpRequest
 // @grant        GM.xmlHttpRequest
 // ==/UserScript==
 
@@ -99,14 +100,14 @@
                 <div id="youtubeDL-quality">
                     <span class="youtubeDL-text medium center float" >Select a quality and click on Download.</span><br>
                     <span class="youtubeDL-text medium center float" style="margin-bottom: 10px;">
-                    ⚠️ CLICK 
+                    ⚠️ CLICK
                     <a href="{asset}allow.gif" target="_blank"><strong>"ALWAYS ALLOW ALL DOMAINS"</strong></a>
-                    
+
                     WHEN DOWNLOADING FOR THE FIRST TIME.
-                    
+
                     <span class="youtubeDL-text center float">Some providers may have a bigger file size than estimated.</span>
                     </span>
-                    
+
                     <table id="youtubeDL-quality-table" style="width: 100%; border-spacing: 0;">
                         <thead class="youtubeDL-row">
                             <th class="youtubeDL-column youtubeDL-text">Format</th>
@@ -115,7 +116,7 @@
                             <th class="youtubeDL-column youtubeDL-text">Download</th>
                         </thead>
                         <tbody id="youtubeDL-quality-container">
-                            
+
                         </tbody>
                     </table>
                 </div>
@@ -125,11 +126,11 @@
                     <br>
                     <a class="youtubeDL-text medium" target="_blank" href="https://www.github.com/realcoloride/YoutubeDL">
                         <img src="{asset}github.png" width="21px">Github</a>
-                    
+
                     <a class="youtubeDL-text medium" target="_blank" href="https://opensource.org/license/mit/">
                         <img src="{asset}mit.png" width="21px">MIT license
                     </a>
-                    
+
                     <a class="youtubeDL-text medium" target="_blank" href="https://ko-fi.com/coloride">
                         <img src="{asset}kofi.png" width="21px">Support me on Ko-Fi
                     </a>
@@ -138,14 +139,14 @@
                 </div>
             </div>
     `;
-    
-    const pageLoadingFailedMessage = 
+
+    const pageLoadingFailedMessage =
 `[YoutubeDL] An error has occured while fetching data.
 
 This can possibly mean your firewall or IP might be blocking the requests and make sure you've set up the proper permissions to the script.
 Please check your firewall or try using a VPN.`;
 
-    const mediaErrorMessage = 
+    const mediaErrorMessage =
 `[YoutubeDL] Failed fetching media.
 
 This could be either because:
@@ -163,12 +164,12 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
         const regex = /(?:https?:\/\/(?:www\.)?youtube\.com\/(?:watch\?v=|shorts\/|embed\/)?)([\w-]+)/i;
         const match = regex.exec(url);
         let videoId = match ? match[1] : null;
-        
+
         let type = null;
         if (url.includes("/shorts/"))       type = "shorts";
         else if (url.includes("/watch?v=")) type = "video";
         else if (url.includes("/embed/"))   type = "embed";
-        
+
         return { type, videoId };
     };
     function getVideoUrlFromEmbed(player) {
@@ -183,36 +184,41 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
             MB: 1024 * 1024,
             GB: 1024 * 1024 * 1024,
         };
-      
+
         const regex = /^(\d+(?:\.\d+)?)\s*([A-Z]+)$/i;
         const match = size.match(regex);
-      
+
         if (!match) return 0;
-      
+
         const value = parseFloat(match[1]);
         const unit = match[2].toUpperCase();
-      
+
         if (!units.hasOwnProperty(unit)) return 0;
-      
+
         return value * units[unit];
-    }     
+    }
     function decipherVariables(variableString) {
         const variableDict = {};
-      
+
         const variableAssignments = variableString.match(/var\s+(\w+)\s*=\s*(.+?);/g);
-      
+
         variableAssignments.forEach((assignment) => {
             const [, variableName, variableValue] = assignment.match(/var\s+(\w+)\s*=\s*['"](.+?)['"];/);
             const trimmedValue = variableValue.trim().replace(/^['"]|['"]$/g, '');
-        
+
             variableDict[variableName] = trimmedValue;
         });
-      
+
         return variableDict;
     }
     function isTimestampExpired(timestamp) {
         const currentTimestamp = Math.floor(Date.now() / 1000);
         return currentTimestamp > timestamp;
+    }
+
+    // potentially adds support for violentmonkey idk
+    async function GMxmlHttpRequest(payload) {
+        return await GM.xmlHttpRequest(payload);
     }
     async function fetchPageInformation(needed = true) {
         if (needed) {
@@ -221,19 +227,19 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
             showLoadingIcon(true);
 
             // Scrapping internal values
-            const pageRequest = await GM.xmlHttpRequest({
+            const pageRequest = await GMxmlHttpRequest({
                 url: pageInformation.website,
                 method: "GET",
                 referrerPolicy: "strict-origin-when-cross-origin",
                 headers: fetchHeaders,
                 credentials: "include"
             });
-    
+
             const parser = new DOMParser();
             const pageDocument = parser.parseFromString(pageRequest.responseText, "text/html");
-    
+
             let scrappedScriptElement;
-    
+
             pageDocument.querySelectorAll("script").forEach((scriptElement) => {
                 const scriptHTML = scriptElement.innerHTML;
                 if (scriptHTML.includes("k_time") && scriptHTML.includes("k_page")) {
@@ -241,16 +247,16 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
                     return;
                 }
             });
-    
+
             const pageValues = decipherVariables(scrappedScriptElement.innerHTML);
             pageInformation.pageValues = pageValues;
-    
+
             pageInformation.searchEndpoint = pageValues['k_url_search'];
             pageInformation.convertEndpoint = pageValues['k_url_convert'];
             pageInformation.checkingEndpoint = pageValues['k_url_check_task'];
 
             showLoadingIcon(false);
-        } 
+        }
 
         pageInformation.loaded = true;
     }
@@ -262,7 +268,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
 
         const initialFormData = new FormData();
         initialFormData.append('v_id', videoId);
-        initialFormData.append('ftype', fileExtension); 
+        initialFormData.append('ftype', fileExtension);
         initialFormData.append('fquality', fileQuality);
         initialFormData.append('token', token);
         initialFormData.append('timeExpire', timeExpires);
@@ -283,32 +289,32 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
                 credentials: "omit"
             };
 
-            const initialRequest = await GM.xmlHttpRequest(payload);
+            const initialRequest = await GMxmlHttpRequest(payload);
             const initialResponse = JSON.parse(initialRequest.responseText);
 
             // Needs conversion is it links to a server
             const downloadLink = initialResponse.d_url;
             const needsConversation = (downloadLink == null);
-            
+
             if (needsConversation) {
                 updatePopupButton(button, 'Converting...');
                 const conversionServerEndpoint = initialResponse.c_server;
 
                 const convertFormData = new FormData();
                 convertFormData.append('v_id', videoId);
-                convertFormData.append('ftype', fileExtension); 
+                convertFormData.append('ftype', fileExtension);
                 convertFormData.append('fquality', fileQuality);
                 convertFormData.append('fname', filename);
                 convertFormData.append('token', token);
                 convertFormData.append('timeExpire', timeExpires);
                 const convertRequestBody = new URLSearchParams(convertFormData).toString();
 
-                const convertRequest = await GM.xmlHttpRequest({
+                const convertRequest = await GMxmlHttpRequest({
                     url: `${conversionServerEndpoint}/api/json/convert`,
                     method: "POST",
                     headers: convertHeaders,
                     data: convertRequestBody,
-                    responseType: 'text', 
+                    responseType: 'text',
                 });
 
                 let convertResponse;
@@ -318,7 +324,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
 
                 try {
                     convertResponse = JSON.parse(convertRequest.responseText);
-                    
+
                     result = convertResponse.result;
                     adaptedResponse = {
                         c_status : convertResponse.status,
@@ -345,7 +351,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
                             const parsedURL = new URL(conversionServerEndpoint);
                             const protocol = parsedURL.protocol === "https:" ? "wss:" : "ws:";
                             const websocketURL = `${protocol}//${parsedURL.host}/sub/${jobId}?fname=${pageInformation.pageValues.k_prefix_name}`;
-                            
+
                             const socket = new WebSocket(websocketURL);
 
                             socket.onmessage = function(event) {
@@ -372,7 +378,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
                         console.error("[YoutubeDL] Error while checking for job converstion:", error);
                         adaptedResponse.c_status = 'error';
 
-                        updatePopupButton(button, 'Converting Failed'); 
+                        updatePopupButton(button, 'Converting Failed');
                         setTimeout(() => {
                             button.disabled = false;
                             updatePopupButton(button, 'Download');
@@ -409,7 +415,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
         };
 
         async function tryRequest() {
-            const request = await GM.xmlHttpRequest({
+            const request = await GMxmlHttpRequest({
                 url: pageInformation.searchEndpoint,
                 method: "POST",
                 headers: fetchHeaders,
@@ -446,7 +452,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
     // Light mode/Dark mode
     function isDarkMode() {
         if (videoInformation.type == 'embed') return true;
-        
+
         const computedStyles = window.getComputedStyle(ytdAppContainer);
         const backgroundColor = computedStyles["background-color"];
 
@@ -454,7 +460,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
     }
     function toggleLightClass(queryTarget) {
         const elements = document.querySelectorAll(queryTarget);
-      
+
         elements.forEach((element) => {
             element.classList.toggle("light");
             toggleLightClassRecursive(element);
@@ -462,7 +468,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
     }
     function toggleLightClassRecursive(element) {
         const children = element.children;
-    
+
         for (let i = 0; i < children.length; i++) {
             children[i].classList.toggle("light");
             toggleLightClassRecursive(children[i]);
@@ -474,29 +480,29 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
     // Downloading
     async function downloadFile(button, url, filename) {
         const baseText = `Download`;
-        
+
         button.disabled = true;
         updatePopupButton(button, "Downloading...");
-    
+
         console.log(`[YoutubeDL] Downloading media URL: ${url}`);
-        
+
         function finish() {
             updatePopupButton(button, baseText);
             if (button.disabled) button.disabled = false
         }
 
-        GM.xmlHttpRequest({
+        GMxmlHttpRequest({
             method: 'GET',
             headers: downloadHeaders,
             url: url,
             responseType: 'blob',
             onload: async function(response) {
-                if (response.status == 403) { 
-                    alert("[YoutubeDL] Media expired or may be impossible to download, please retry or try with another format, sorry!"); 
-                    await reloadMedia(); 
-                    return; 
+                if (response.status == 403) {
+                    alert("[YoutubeDL] Media expired or may be impossible to download, please retry or try with another format, sorry!");
+                    await reloadMedia();
+                    return;
                 }
-                
+
                 const blob = response.response;
                 const link = document.createElement('a');
 
@@ -511,11 +517,12 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
                 setTimeout(finish, 1000);
             },
             onerror: function(error) {
+                console.trace("youtubedl trace for error DEBUG INFO");
                 console.error('[YoutubeDL] Download Error:', error);
                 updatePopupButton(button, 'Download Failed');
-                
+
                 setTimeout(finish, 1000);
-            }, 
+            },
             onprogress: function(progressEvent) {
                 if (progressEvent.lengthComputable) {
                     const percentComplete = Math.round((progressEvent.loaded / progressEvent.total) * 100);
@@ -566,7 +573,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
         const qualityRowElement = createRowElement();
         createSpanText(quality, qualityRowElement);
         addRowElement(qualityRowElement);
-        
+
         // Size
         const sizeRowElement = createRowElement();
         createSpanText(size, sizeRowElement);
@@ -592,7 +599,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
                 quality = quality.replace(/ \(audio\)|kbps/g, '');
                 let filename = `YoutubeDL_${videoTitle}_${quality}.${extension}`;
                 if (extension == "mp3") filename = `YoutubeDL_${videoTitle}.${extension}`;
-                
+
                 const conversionRequest = await startConversion(extension, quality, timeExpires, token, filename, downloadButton);
                 const conversionStatus = conversionRequest.c_status;
 
@@ -631,6 +638,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
             const timeExpires = response.timeExpires;
             const videoTitle = response.title;
 
+            console.log(response);
             const audioLinks = links.mp3;
             let videoLinks = links.mp4;
 
@@ -645,12 +653,12 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
                 const unit = size.match(regex)[0];
                 const sizeNoUnit = size.replace(regex, "");
                 const roundedSize = Math.round(parseFloat(sizeNoUnit));
-                
+
                 size = `${roundedSize}${unit}`;
                 if (roundedSize == 0 && unit == ' B') size = "?";
 
                 createMediaFile({
-                    extension: format, 
+                    extension: format,
                     quality,
                     timeExpires,
                     videoTitle,
@@ -664,7 +672,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
             // keep only the HDR qualities higher than 1080p
             for (const [key, value] of Object.entries(videoLinks)) {
                 const qualityName = value.k;
-                if (qualityName.endsWith("HDR") && parseInt(qualityName.substr(0, 4)) <= 1080) 
+                if (qualityName.endsWith("HDR") && parseInt(qualityName.substr(0, 4)) <= 1080)
                     delete videoLinks[key];
             }
 
@@ -707,8 +715,8 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
                 return swappedObj;
             }
             videoLinks = swapKeys(videoLinks, Object.keys(videoLinks), newOrder);
-             
-            // Bubble swapping estimated qualities if incorrect (by provider) 
+
+            // Bubble swapping estimated qualities if incorrect (by provider)
             function bubbleSwap() {
                 const videoLinkIds = Object.keys(videoLinks);
                 videoLinkIds.forEach((qualityId) => {
@@ -757,7 +765,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
             };
 
             for (let i = 0; i < Object.keys(videoLinks).length; i++) bubbleSwap();
-            
+
             for (const [qualityId, information] of Object.entries(videoLinks)) {
                 if (!information) continue;
 
@@ -878,12 +886,12 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
 
                         console.log("[YoutubeDL/Proxy] Loading custom styles...");
                         await injectStyles();
-                
+
                         console.log("[YoutubeDL/Proxy] Loading popup...");
                         injectPopup();
-                        
+
                         hasOuterInjectedFromTop = true;
-                        
+
                         sendToBottomWindows("YoutubeDL_topLoadingShow", false);
                     } catch (error) {
                         sendToBottomWindows("YoutubeDL_topLoadingShow", false);
@@ -945,12 +953,12 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
     }
     function injectPopup() {
         /*<div id="youtubeDL-popup-bg" class="shown">
-            
+
         </div>*/
         // if in proxy window/embed
         if (window.self !== window.top) {
             console.log("[YoutubeDL] Embed or internal window detected. Outer-injecting the popup of the iframe.");
-            
+
             // outer injection
             sendToTopWindow("YoutubeDL_outerInject", null);
             return;
@@ -984,7 +992,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
         const iframes = document.querySelectorAll('iframe');
         iframes.forEach((iframe) => iframe.contentWindow.postMessage({ title, object, passcode: "spaghetti" }, '*'));
     }
-    
+
     let hideTimeout;
     let waitingReload = false;
     function togglePopup() {
@@ -1013,7 +1021,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
     async function togglePopupElement(embedLink) {
         if (popupElement.hidden == false) return;
         popupElement.hidden = false;
-        
+
         const oldId = videoInformation.videoId;
 
         if (embedLink != null) {
@@ -1049,7 +1057,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
             const playerControls = document.querySelectorAll('ytd-shorts-player-controls');
             targets = playerControls;
             style = "margin-bottom: 16px; transform: translate(36%, 10%); pointer-events: auto;";
-        } else if (onEmbed) { 
+        } else if (onEmbed) {
             // Get all embeds on the page
             const controls = document.querySelectorAll(".ytp-left-controls");
             for (let i = 0; i < controls.length; i++) {
@@ -1057,7 +1065,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
                 const player = control.parentNode.parentNode.parentNode.parentNode;
 
                 control.setAttribute(
-                    "embedLink", 
+                    "embedLink",
                     // if on top window, you can directly fetch from the iframe
                     // or else if in a proxy window, fetch directly from the location href
                     window.self === window.top ? getVideoUrlFromEmbed(player) : window.self.location.href
@@ -1079,7 +1087,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
             const downloadButton = document.createElement("button");
             downloadButton.classList.add("ytp-button");
             downloadButton.innerHTML = `<img src="${getAsset(hasFailedLoadingPageInformation ? "YoutubeDL-warning.png" : "YoutubeDL.png")}" style="${style}" width="36" height="36">`;
-    
+
             downloadButton.id = 'youtubeDL-download'
             downloadButton.setAttribute('data-title-no-tooltip', 'YoutubeDL');
             downloadButton.setAttribute('aria-keyshortcuts', 'SHIFT+d');
@@ -1089,7 +1097,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
             downloadButton.setAttribute('data-tooltip-text', '');
             downloadButton.setAttribute('href', '');
             downloadButton.setAttribute('title', 'Download Video');
-    
+
             downloadButton.addEventListener("click", async(_) => {
                 if (hasFailedLoadingPageInformation) {
                     alert(pageLoadingFailedMessage);
@@ -1117,7 +1125,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
                 // else do regularly on top window
                 await togglePopupElement(embedLink);
             });
-    
+
             if (target.querySelector("#youtubeDL-download")) return;
 
             const chapterContainer = target.querySelector('.ytp-chapter-container');
@@ -1138,7 +1146,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
     // Styles
     async function loadCSS(url) {
         return new Promise((resolve, reject) => {
-            GM.xmlHttpRequest({
+            GMxmlHttpRequest({
                 method: 'GET',
                 url: url,
                 onload: function(response) {
@@ -1171,7 +1179,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
         closeButton.addEventListener('click', (_) => {
             try {
                 togglePopup();
-                
+
                 setTimeout(() => popupElement.hidden = true, 200);
             } catch (error) {console.error(error);}
         });
@@ -1227,14 +1235,14 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
     function shouldInject() {
         const targetElement = "#ytd-player";
         const videoPlayer = document.querySelector(targetElement);
-        
+
         if (videoPlayer != null) {
             if (!preinjected) return true;
 
             const popupBackgroundElement = document.querySelector("#youtubeDL-popup-bg");
             return popupBackgroundElement != null;
         }
-        
+
         return false;
     }
 
@@ -1247,7 +1255,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
         prepareOuterInjectionForProxy();
         updateVideoInformation();
         if (!videoInformation.type) return;
-        
+
         console.log("[YoutubeDL] Loading... // (real)coloride - 2023-2024");
 
         if (window.self === window.top) prepareOuterInjection();
@@ -1267,7 +1275,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
 
             // wait for click
             function injectTo(player) {
-                player.addEventListener("click", async(_) => await injectAll()); 
+                player.addEventListener("click", async(_) => await injectAll());
             }
 
             // check if page is actual embed, get first player & inject (NOT autoplay)
@@ -1276,7 +1284,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
                 injectTo(document.querySelector("#player"));
                 return;
             }
-            
+
             // else if in global window
             const embeds = window.self.document.querySelectorAll('iframe[data-player="youtube"]');
             if (embeds.length == 0) return;
@@ -1326,7 +1334,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
                 credentials: "omit"
             };
 
-            const request = await GM.xmlHttpRequest(payload);
+            const request = await GMxmlHttpRequest(payload);
             const response = JSON.parse(request.responseText);
 
             const currentVersion = response[0]["version"];
@@ -1336,11 +1344,11 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
         })();
     }
 
-    // Hot reswap 
+    // Hot reswap
     let loadedUrl = window.location.href;
     async function checkUrlChange() {
         const currentUrl = window.location.href;
-        
+
         if (currentUrl != loadedUrl) {
             console.log("[YoutubeDL] Detected URL Change");
 
