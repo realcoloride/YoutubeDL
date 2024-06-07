@@ -26,8 +26,8 @@
 
     let pageInformation = {
         loaded : false,
-        website : null,
-        searchEndpoint : "https://yt5s.io/api/ajaxSearch",
+        website : "https://yt5s.io/id18",
+        searchEndpoint : null,
         convertEndpoint : null,
         checkingEndpoint : null,
         pageValues : {}
@@ -55,9 +55,9 @@
     };
     const convertHeaders = {
         "accept": "*/*",
-        "accept-language": "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7",
+        "accept-language": "en-US,en;q=0.9",
         "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
-        "sec-ch-ua": "\"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"114\", \"Google Chrome\";v=\"114\"",
+        "sec-ch-ua": "\"Google Chrome\";v=\"125\", \"Chromium\";v=\"125\", \"Not.A/Brand\";v=\"24\"",
         "sec-ch-ua-mobile": "?0",
         "sec-ch-ua-platform": "\"Windows\"",
         "sec-fetch-dest": "empty",
@@ -67,9 +67,9 @@
     };
     const downloadHeaders = {
         "accept": "*/*",
-        "accept-language": "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7",
+        "accept-language": "en-US,en;q=0.9",
         "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
-        "sec-ch-ua": "\"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"114\", \"Google Chrome\";v=\"114\"",
+        "sec-ch-ua": "\"Google Chrome\";v=\"125\", \"Chromium\";v=\"125\", \"Not.A/Brand\";v=\"24\"",
         "sec-ch-ua-mobile": "?0",
         "sec-ch-ua-platform": "\"Windows\"",
         "sec-fetch-dest": "empty",
@@ -212,9 +212,11 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
         const currentTimestamp = Math.floor(Date.now() / 1000);
         return currentTimestamp > timestamp;
     }
-    async function fetchPageInformation(needed) {
+    async function fetchPageInformation(needed = true) {
         if (needed) {
             if (pageInformation.searchEndpoint != null || window.self !== window.top) return;
+
+            showLoadingIcon(true);
 
             // Scrapping internal values
             const pageRequest = await GM.xmlHttpRequest({
@@ -242,6 +244,8 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
             pageInformation.searchEndpoint = pageValues['k_url_search'];
             pageInformation.convertEndpoint = pageValues['k_url_convert'];
             pageInformation.checkingEndpoint = pageValues['k_url_check_task'];
+
+            showLoadingIcon(false);
         } 
 
         pageInformation.loaded = true;
@@ -635,10 +639,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
 
             // keep only the HDR qualities higher than 1080p
             for (const [key, value] of Object.entries(videoLinks)) {
-                console.log(value);
                 const qualityName = value.k;
-                console.log(qualityName.endsWith("HDR") );
-                console.log(parseInt(qualityName.substr(0, 4)));
                 if (qualityName.endsWith("HDR") && parseInt(qualityName.substr(0, 4)) <= 1080) 
                     delete videoLinks[key];
             }
@@ -774,7 +775,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
         togglePopupLoading(true);
         clearMedia();
 
-        await fetchPageInformation(false);
+        await fetchPageInformation();
         await loadMedia();
 
         loadingBarSpan.textContent = "Loading...";
@@ -849,7 +850,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
 
                         // load everything needed on top window if not done
                         console.log("[YoutubeDL/Proxy] Fetching page information...");
-                        await fetchPageInformation(false);
+                        await fetchPageInformation();
 
                         console.log("[YoutubeDL/Proxy] Loading custom styles...");
                         await injectStyles();
@@ -896,17 +897,8 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
 
             switch (title) {
                 case "YoutubeDL_topLoadingShow":
-                    // object is now a boolean
-                    const downloadButtonImage = document.querySelector("#youtubeDL-download > img");
-                    if (downloadButtonImage == null) return;
-
                     outerProxyLoading = object;
-                    // set loading icon and flicker if loading else reset
-                    downloadButtonImage.src = getAsset(object == true ? "YoutubeDL-loading.png" : "YoutubeDL.png");
-
-                    if (object == true) downloadButtonImage.classList.add("youtubeDL-flicker");
-                    else                downloadButtonImage.classList.remove("youtubeDL-flicker");
-
+                    showLoadingIcon(object);
                     break;
                 case "YoutubeDL_showError":
                     console.error("[YoutubeDL] Error coming from proxy window:", object);
@@ -915,6 +907,17 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
         });
 
         hasPreparedForInnerProxyInjection = true;
+    }
+    function showLoadingIcon(shown) {
+        // object is now a boolean
+        const downloadButtonImage = document.querySelector("#youtubeDL-download > img");
+        if (downloadButtonImage == null) return;
+
+        // set loading icon and flicker if loading else reset
+        downloadButtonImage.src = getAsset(shown == true ? "YoutubeDL-loading.png" : "YoutubeDL.png");
+
+        if (shown == true) downloadButtonImage.classList.add("youtubeDL-flicker");
+        else               downloadButtonImage.classList.remove("youtubeDL-flicker");
     }
     function injectPopup() {
         /*<div id="youtubeDL-popup-bg" class="shown">
@@ -1172,7 +1175,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
 
         console.log("[YoutubeDL] Initializing downloader...");
         try {
-            await fetchPageInformation(false);
+            await fetchPageInformation();
         } catch (error) {
             isLoadingMedia = false;
             console.error("[YoutubeDL] Failed fetching page information: ", error);
