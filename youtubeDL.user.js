@@ -978,6 +978,8 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
             return;
         }
 
+        checkUrlChange();
+        
         if (needsUpdate) showNewUpdateText(needsUpdate);
         popupElement.classList.toggle("shown");
 
