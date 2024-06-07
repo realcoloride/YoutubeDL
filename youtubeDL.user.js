@@ -13,6 +13,7 @@
 // @connect      googlevideo.com
 // @connect      aadika.xyz
 // @connect      dlsnap11.xyz
+// @connect      dlsnap06.xyz
 // @connect      githubusercontent.com
 // @connect      greasyfork.org
 // @connect      *
@@ -26,7 +27,7 @@
 
     let pageInformation = {
         loaded : false,
-        website : "https://yt5s.io/id18",
+        website : "https://snapsave.io/en52",
         searchEndpoint : null,
         convertEndpoint : null,
         checkingEndpoint : null,
@@ -394,6 +395,10 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
         if (!videoType) return;
 
         const formData = new FormData();
+        const { k__token, k_time } = pageInformation.pageValues;
+
+        formData.append('k_exp', k_time);
+        formData.append('k_token', k__token);
         formData.append('q', `https://www.youtube.com/watch?v=${videoId}`);
         formData.append('vt', 'home');
         const requestBody = new URLSearchParams(formData).toString();
@@ -410,8 +415,9 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
                 data: requestBody,
                 responseType: 'text',
             });
-            
+
             result = JSON.parse(request.responseText);
+            if (result.status == 'error') throw new Error(request.responseText);
         } catch (error) {
             console.error(error);
             return result;
@@ -624,6 +630,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
                 const roundedSize = Math.round(parseFloat(sizeNoUnit));
                 
                 size = `${roundedSize}${unit}`;
+                if (roundedSize == 0 && unit == ' B') size = "?";
 
                 createMediaFile({
                     extension: format, 
@@ -942,7 +949,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
         popupElement = document.createElement("div");
         popupElement.id = "youtubeDL-popup-bg";
         // avoids replacement
-        popupElement.style = "line-height: initial; font-size: initial; z-index: " + Number.MAX_SAFE_INTEGER;
+        popupElement.style = `line-height: initial; font-size: initial; z-index: ${Number.MAX_SAFE_INTEGER}`;
 
         const revisedHTML = popupHTML.replaceAll('{asset}', githubAssetEndpoint);
         popupElement.innerHTML = revisedHTML;
