@@ -14,6 +14,7 @@
 // @connect      aadika.xyz
 // @connect      dlsnap11.xyz
 // @connect      githubusercontent.com
+// @connect      greasyfork.org
 // @connect      *
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=youtube.com
 // @license      MIT
@@ -25,17 +26,20 @@
 
     let pageInformation = {
         loaded : false,
-        website : "https://savetube.io",
-        searchEndpoint : null,
+        website : null,
+        searchEndpoint : "https://yt5s.io/api/ajaxSearch",
         convertEndpoint : null,
         checkingEndpoint : null,
         pageValues : {}
     }
 
+    let version = '1.1.0';
+
     // Process:
     // Search -> Checking -> Convert by -> Convert using c_server
 
     const githubAssetEndpoint = "https://raw.githubusercontent.com/realcoloride/YoutubeDL/main/";
+    const updateGreasyUrl = "https://greasyfork.org/scripts/471103-youtubedl/versions.json";
 
     let videoInformation;
     const fetchHeaders = {
@@ -117,12 +121,18 @@
                 <div class="youtubeDL-credits">
                     <span class="youtubeDL-text medium">YoutubeDL by (real)coloride - 2023-2024</span>
                     <br>
-                    <a class="youtubeDL-text medium" href="https://www.github.com/realcoloride/YoutubeDL">
+                    <a class="youtubeDL-text medium" target="_blank" href="https://www.github.com/realcoloride/YoutubeDL">
                         <img src="{asset}github.png" width="21px">Github</a>
                     
-                    <a class="youtubeDL-text medium" href="https://opensource.org/license/mit/">
+                    <a class="youtubeDL-text medium" target="_blank" href="https://opensource.org/license/mit/">
                         <img src="{asset}mit.png" width="21px">MIT license
                     </a>
+                    
+                    <a class="youtubeDL-text medium" target="_blank" href="https://ko-fi.com/coloride">
+                        <img src="{asset}kofi.png" width="21px">Support me on Ko-Fi
+                    </a>
+
+                    <a class="youtubeDL-text medium youtubeDL-flicker" target="_blank" href="https://update.greasyfork.org/scripts/471103/YoutubeDL.user.js" style="color: yellow;" id="youtubeDL-update-available" hidden></a>
                 </div>
             </div>
     `;
@@ -202,35 +212,37 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
         const currentTimestamp = Math.floor(Date.now() / 1000);
         return currentTimestamp > timestamp;
     }
-    async function fetchPageInformation() {
-        if (pageInformation.searchEndpoint != null || window.self !== window.top) return;
+    async function fetchPageInformation(needed) {
+        if (needed) {
+            if (pageInformation.searchEndpoint != null || window.self !== window.top) return;
 
-        // Scrapping internal values
-        const pageRequest = await GM.xmlHttpRequest({
-            url: `${pageInformation.website}`,
-            method: "GET",
-            headers: fetchHeaders,
-        });
-
-        const parser = new DOMParser();
-        const pageDocument = parser.parseFromString(pageRequest.responseText, "text/html");
-
-        let scrappedScriptElement;
-
-        pageDocument.querySelectorAll("script").forEach((scriptElement) => {
-            const scriptHTML = scriptElement.innerHTML;
-            if (scriptHTML.includes("k_time") && scriptHTML.includes("k_page")) {
-                scrappedScriptElement = scriptElement;
-                return;
-            }
-        });
-
-        const pageValues = decipherVariables(scrappedScriptElement.innerHTML);
-        pageInformation.pageValues = pageValues;
-
-        pageInformation.searchEndpoint = pageValues['k_url_search'];
-        pageInformation.convertEndpoint = pageValues['k_url_convert'];
-        pageInformation.checkingEndpoint = pageValues['k_url_check_task'];
+            // Scrapping internal values
+            const pageRequest = await GM.xmlHttpRequest({
+                url: `${pageInformation.website}`,
+                method: "GET",
+                headers: fetchHeaders,
+            });
+    
+            const parser = new DOMParser();
+            const pageDocument = parser.parseFromString(pageRequest.responseText, "text/html");
+    
+            let scrappedScriptElement;
+    
+            pageDocument.querySelectorAll("script").forEach((scriptElement) => {
+                const scriptHTML = scriptElement.innerHTML;
+                if (scriptHTML.includes("k_time") && scriptHTML.includes("k_page")) {
+                    scrappedScriptElement = scriptElement;
+                    return;
+                }
+            });
+    
+            const pageValues = decipherVariables(scrappedScriptElement.innerHTML);
+            pageInformation.pageValues = pageValues;
+    
+            pageInformation.searchEndpoint = pageValues['k_url_search'];
+            pageInformation.convertEndpoint = pageValues['k_url_convert'];
+            pageInformation.checkingEndpoint = pageValues['k_url_check_task'];
+        } 
 
         pageInformation.loaded = true;
     }
@@ -246,7 +258,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
         initialFormData.append('fquality', fileQuality);
         initialFormData.append('token', token);
         initialFormData.append('timeExpire', timeExpires);
-        initialFormData.append('client', 'SaveTube.io');
+        initialFormData.append('client', 'yt5s.io');
         const initialRequestBody = new URLSearchParams(initialFormData).toString();
 
         let result = null;
@@ -621,6 +633,16 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
                 });
             }
 
+            // keep only the HDR qualities higher than 1080p
+            for (const [key, value] of Object.entries(videoLinks)) {
+                console.log(value);
+                const qualityName = value.k;
+                console.log(qualityName.endsWith("HDR") );
+                console.log(parseInt(qualityName.substr(0, 4)));
+                if (qualityName.endsWith("HDR") && parseInt(qualityName.substr(0, 4)) <= 1080) 
+                    delete videoLinks[key];
+            }
+
             // Audio will only have this one so it doesnt matter
             const defaultAudioFormat = audioLinks[Object.keys(audioLinks)[0]];
             defaultAudioFormat.f = "mp3 (audio)";
@@ -631,7 +653,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
             // Remove auto quality
             videoLinks["auto"] = null;
 
-            // Store 3gp quality if available
+            // Do not store 3gp quality if available
             const low3gpFormat = { ...videoLinks["3gp@144p"] };
             delete videoLinks["3gp@144p"];
 
@@ -752,7 +774,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
         togglePopupLoading(true);
         clearMedia();
 
-        await fetchPageInformation();
+        await fetchPageInformation(false);
         await loadMedia();
 
         loadingBarSpan.textContent = "Loading...";
@@ -827,7 +849,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
 
                         // load everything needed on top window if not done
                         console.log("[YoutubeDL/Proxy] Fetching page information...");
-                        await fetchPageInformation();
+                        await fetchPageInformation(false);
 
                         console.log("[YoutubeDL/Proxy] Loading custom styles...");
                         await injectStyles();
@@ -946,6 +968,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
             return;
         }
 
+        if (needsUpdate) showNewUpdateText(needsUpdate);
         popupElement.classList.toggle("shown");
 
         if (waitingReload) { reloadMedia(); waitingReload = false;}
@@ -1149,7 +1172,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
 
         console.log("[YoutubeDL] Initializing downloader...");
         try {
-            await fetchPageInformation();
+            await fetchPageInformation(false);
         } catch (error) {
             isLoadingMedia = false;
             console.error("[YoutubeDL] Failed fetching page information: ", error);
@@ -1254,6 +1277,36 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
         }
     }
 
+    // Checking for updates
+    let needsUpdate = null;
+    function showNewUpdateText(version) {
+        needsUpdate = version;
+
+        const element = document.querySelector("#youtubeDL-update-available"); if (!element) return;
+        element.hidden = false;
+        element.innerText = `An update (${version}) is available! Click here to update.`;
+    }
+    function checkForUpdates() {
+        (async() => {
+            const payload = {
+                url: updateGreasyUrl,
+                method: "GET",
+                responseType: 'text',
+                referrerPolicy: "strict-origin-when-cross-origin",
+                mode: "cors",
+                credentials: "omit"
+            };
+
+            const request = await GM.xmlHttpRequest(payload);
+            const response = JSON.parse(request.responseText);
+
+            const currentVersion = response[0]["version"];
+            const requiresUpdate = currentVersion != version;
+
+            if (requiresUpdate) showNewUpdateText(currentVersion);
+        })();
+    }
+
     // Hot reswap 
     let loadedUrl = window.location.href;
     async function checkUrlChange() {
@@ -1281,6 +1334,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
     }
 
     initialize();
+    checkForUpdates();
 
     setInterval(checkUrlChange, 500);
     window.onhashchange = checkUrlChange;
