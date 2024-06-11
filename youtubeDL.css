@@ -17,6 +17,10 @@
     transition: 0.05s ease-out;
     font-family: Roboto, Arial, sans-serif;
     font-weight: 400;
+    text-transform: none;
+
+    padding-block: 1px;
+    padding-inline: 6px;
 }
 .youtubeDL-button > span {
     font-weight: 500;
@@ -32,6 +36,9 @@
     border-color: rgba(255, 255, 255, 0);
     color: rgba(255, 255, 255, 0.566);
     cursor: not-allowed;
+}
+.youtubeDL-button > strong {
+    font-weight: bold;
 }
 
 .youtubeDL-button.light {
