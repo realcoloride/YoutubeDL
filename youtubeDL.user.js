@@ -856,6 +856,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
 
         loadingBar.hidden = !loading;
         qualityContainer.hidden = loading;
+        loadingBar.style = loading ? "" : "display: none;"
 
         // cool slide animation
         const popup = getPopupElement("popup");
