@@ -19,6 +19,7 @@
     font-weight: 400;
     font-size: 14px;
     text-transform: none;
+    font: initial;
 
     padding-block: 1px;
     padding-inline: 6px;
@@ -29,6 +30,7 @@
     padding-left: 10px;
     padding-right: 10px;
     font-family: Roboto, Arial, sans-serif;
+    font-size: 14px;
 }
 .youtubeDL-button:active {
     border-color: rgba(255, 255, 255, 1);
@@ -41,6 +43,7 @@
 }
 .youtubeDL-button > strong {
     font-weight: bold;
+    font-size: 14px;
 }
 
 .youtubeDL-button.light {
@@ -82,9 +85,8 @@
 
 .youtubeDL-text {
     font-family: "Roboto","Arial",sans-serif;
+    font: initial;
     font-size: 14px;
-    
-    text-decoration: underline;
     
     color: rgba(255, 255, 255, 1);
 }
