@@ -15,11 +15,14 @@
     border-radius: 18px;
     
     transition: 0.05s ease-out;
+    font-family: Roboto, Arial, sans-serif;
+    font-weight: 400;
 }
 .youtubeDL-button > span {
     font-weight: 500;
     padding-left: 10px;
     padding-right: 10px;
+    font-family: Roboto, Arial, sans-serif;
 }
 .youtubeDL-button:active {
     border-color: rgba(255, 255, 255, 1);
@@ -181,6 +184,9 @@
 .youtubeDL-column {
     background-color: rgba(164, 164, 164, 0.70);
     padding-bottom: 4px;
+    text-align: center;
+    font-weight: 700;
+    vertical-align: middle;
 }
 .youtubeDL-column.light {
     background-color: rgba(37, 37, 37, 0.70);
@@ -195,6 +201,9 @@
 .youtubeDL-row-element {
     padding: 5px;
     border: none;
+    text-align: center;
+    vertical-align: middle;
+    font-weight: 700;
 }
 
 .youtubeDL-credits {
