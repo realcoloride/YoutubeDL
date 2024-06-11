@@ -90,7 +90,7 @@
     color: rgba(0, 0, 5, 1);
 }
 
-.youtubeDL-loading {   
+#youtubeDL-loading {   
     display: flex;
     align-items: center;
     justify-content: center;
