@@ -154,6 +154,9 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
+
+    transition: max-height 0.15s ease;
+    overflow: hidden;
 }
 #youtubeDL-popup.light {
     background-color: #fff;
