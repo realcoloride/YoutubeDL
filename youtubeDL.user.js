@@ -95,9 +95,8 @@
                 </span>
 
                 <div id="youtubeDL-loading">
-                    <span class="youtubeDL-text medium center float" style="display: flex;">
-                        <img src="{asset}loading.svg" style="width:21px; padding-right: 6px;"> Loading...
-                    </span>
+                    <img src="{asset}loading.svg" style="width:21px; padding-right: 6px; display: flex;">
+                    <span class="youtubeDL-text medium center float" style="display: flex;">Loading...</span>
                 </div>
 
                 <div id="youtubeDL-quality">
@@ -855,7 +854,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
         const loadingBar = getPopupElement("loading");
         const qualityContainer = getPopupElement("quality");
 
-        loadingBar.hidden = loading;
+        loadingBar.hidden = !loading;
         qualityContainer.hidden = loading;
 
         // cool slide animation
