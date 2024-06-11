@@ -155,7 +155,6 @@
     left: 50%;
     transform: translate(-50%, -50%);
 
-    transition: max-height 0.5s ease;
     overflow: hidden;
 }
 #youtubeDL-popup.light {
