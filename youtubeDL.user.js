@@ -855,8 +855,12 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
         const loadingBar = getPopupElement("loading");
         const qualityContainer = getPopupElement("quality");
 
-        loadingBar.hidden = !loading;
+        loadingBar.hidden = loading;
         qualityContainer.hidden = loading;
+
+        // cool slide animation
+        const popup = getPopupElement("popup");
+        popup.style.maxHeight = loading ? "200px" : popup.scrollHeight + "px";
     }
 
     let hasPreparedForOuterInjection = false;
