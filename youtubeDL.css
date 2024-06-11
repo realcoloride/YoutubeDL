@@ -17,10 +17,12 @@
     transition: 0.05s ease-out;
     font-family: Roboto, Arial, sans-serif;
     font-weight: 400;
+    font-size: 14px;
     text-transform: none;
 
     padding-block: 1px;
     padding-inline: 6px;
+    padding: 0;
 }
 .youtubeDL-button > span {
     font-weight: 500;
