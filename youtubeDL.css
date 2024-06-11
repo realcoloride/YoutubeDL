@@ -90,6 +90,12 @@
     color: rgba(0, 0, 5, 1);
 }
 
+.youtubeDL-loading {   
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .youtubeDL-row {
     background-color: rgba(0, 0, 0, 0.2);
     border-radius: 8px;
