@@ -226,16 +226,13 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
                     ...payload,
                     onload: (response) => {
                         if (response.status != 429) {
-                            if (payload.onload != undefined)
-                                payload.onload(response);
-
-                            resolve(response);
+                            payload.onload == undefined ? resolve(response) : payload.onload(response);
                             return;
                         }
                         
                         console.log(`[YouTubeDL] Request failed due to rate limit (429), retrying in ${delay}ms. [${attempt}/${retries}]`);
                         if (attempt < retries)
-                            setTimeout(() => resolve(attemptRequest(attempt + 1)), delay * (attempt + 1));
+                            setTimeout(() => attemptRequest(attempt + 1), delay * (attempt + 1));
                         else reject(response);
                     },
                 });
@@ -446,7 +443,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
                 responseType: 'text',
             });
 
-            // console.log(`[YouTubeDL] Debug response from server (${request.status}): ${request.responseText}`);
+            console.log(`[YouTubeDL] Debug response from server (${request.status}): ${request.responseText}`);
             result = JSON.parse(request.responseText);
         }
 
