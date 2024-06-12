@@ -105,6 +105,18 @@
 .youtubeDL-text > a.light:visited {
     color: rgba(0, 0, 5, 1) !important;
 }
+.youtubeDL-text a,
+.youtubeDL-text span a,
+.youtubeDL-text a:link,
+.youtubeDL-text span a:link,
+.youtubeDL-text a:visited,
+.youtubeDL-text span a:visited,
+.youtubeDL-text a:hover,
+.youtubeDL-text span a:hover,
+.youtubeDL-text a:active,
+.youtubeDL-text span a:active {
+    text-decoration: underline !important;
+}
 
 #youtubeDL-loading {   
     display: flex;
