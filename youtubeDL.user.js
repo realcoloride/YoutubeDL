@@ -490,8 +490,6 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
             if (button.disabled) button.disabled = false
         }
 
-        const retry = async() => {};
-
         GMxmlHttpRequest({
             method: 'GET',
             headers: downloadHeaders,
@@ -510,6 +508,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
                 link.href = URL.createObjectURL(blob);
                 link.setAttribute('download', filename);
                 link.click();
+                link.remove();
 
                 URL.revokeObjectURL(link.href);
                 updatePopupButton(button, 'Downloaded!');
@@ -519,7 +518,12 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
             },
             onerror: function(error) {
                 if (error.finalUrl == url) {
-                    GM.openInTab(url);
+                    const link = document.createElement('a');
+    
+                    link.href = url;
+                    link.setAttribute('download', filename);
+                    link.click();
+                    link.remove();
 
                     updatePopupButton(button, 'Downloaded!');
                     button.disabled = false;
