@@ -219,9 +219,32 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
     }
 
     // potentially adds support for violentmonkey idk
-    async function GMxmlHttpRequest(payload) {
-        return await GM.xmlHttpRequest(payload);
+    async function GMxmlHttpRequest(payload, retries = 15, delay = 2000) {
+        const attemptRequest = async (attempt) => {
+            return new Promise((resolve, reject) => {
+                GM.xmlHttpRequest({
+                    ...payload,
+                    onload: (response) => {
+                        if (response.status != 429) {
+                            if (payload.onload != undefined)
+                                payload.onload(response);
+
+                            resolve(response);
+                            return;
+                        }
+                        
+                        console.log(`[YouTubeDL] Request failed due to rate limit (429), retrying in ${delay}ms. [${attempt}/${retries}]`);
+                        if (attempt < retries)
+                            setTimeout(() => resolve(attemptRequest(attempt + 1)), delay * (attempt + 1));
+                        else reject(response);
+                    },
+                });
+            });
+        };
+    
+        return attemptRequest(0);
     }
+
     async function fetchPageInformation(needed = true) {
         if (needed) {
             if (pageInformation.searchEndpoint != null || window.self !== window.top) return;
@@ -423,7 +446,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
                 responseType: 'text',
             });
 
-            console.log("[YouTubeDL] Debug response from server: ", request.responseText);
+            // console.log(`[YouTubeDL] Debug response from server (${request.status}): ${request.responseText}`);
             result = JSON.parse(request.responseText);
         }
 
