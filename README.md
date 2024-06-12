@@ -4,7 +4,7 @@
 ### <img src="https://github.com/realcoloride/YoutubeDL/assets/108619637/dd2b0546-a521-4459-b796-5c59ad932c5e" alt="YoutubeDL" width="290" height="274">
 
 🌟 Features:
-* 🎥 Download video formats from 144p to 1080p (up to 60 fps)
+* 🎥 Download video formats from 144p to 2K* (up to 60 fps)
 * 🎵 Download audio format in MP3
 * 🔅 Light and dark theme support set automatically
 * 📎 Support for embeds, shorts and videos
@@ -12,6 +12,8 @@
 * ❌ No need for extra websites
 * 🌟 Support for YouTube shorts, embeds, and YouTube no cookie
 * ➕ And a bit more...
+
+\*_Certain providers might not support up to 4K on all videos due to geo-restrictions or other technical issues._
 
 # Demonstration
 #### See it in action
