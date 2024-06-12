@@ -137,7 +137,7 @@
                         <img src="{asset}kofi.png" width="21px">Support me on Ko-Fi
                     </a>
 
-                    <a class="youtubeDL-text medium youtubeDL-flicker" target="_blank" href="https://update.greasyfork.org/scripts/471103/YoutubeDL.user.js" style="color: yellow;" id="youtubeDL-update-available" hidden></a>
+                    <a class="youtubeDL-text medium youtubeDL-flicker" target="_blank" href="https://update.greasyfork.org/scripts/471103/YoutubeDL.user.js" style="color: yellow !important;" id="youtubeDL-update-available" hidden></a>
                 </div>
             </div>
     `;
@@ -423,6 +423,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
                 responseType: 'text',
             });
 
+            console.log("[YouTubeDL] Debug response from server: ", request.responseText);
             result = JSON.parse(request.responseText);
         }
 
@@ -617,12 +618,12 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
                 const conversionRequest = await startConversion(extension, quality, timeExpires, token, filename, downloadButton);
                 const conversionStatus = conversionRequest.c_status;
 
-                async function fail() {
-                    throw Error("Failed to download.");
+                async function fail(status) {
+                    throw Error("Failed to download: " + status);
                 }
 
-                if (!conversionStatus) { fail(); return; }
-                if (conversionStatus != 'ok' && conversionStatus != 'success') { fail(); return; }
+                if (!conversionStatus) { fail(conversionStatus ?? "unknown"); return; }
+                if (conversionStatus != 'ok' && conversionStatus != 'success') { fail(conversionStatus); return; }
 
                 const downloadLink = conversionRequest.d_url;
                 await downloadFile(downloadButton, downloadLink, filename);
@@ -1092,7 +1093,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
                 targets.push(control);
             }
 
-            style = "margin-top: 4px; transform: translateY(-7%); padding-left: 3px; display: flex;";
+            style = "margin-top: 4px; transform: translateY(-7%); display: flex;";
         } else {
             // Button for normal player
             targets.push(document.querySelector(".ytp-left-controls"));
