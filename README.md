@@ -35,7 +35,7 @@
 ## Links
 |<img src="https://github.com/realcoloride/YoutubeDL/assets/108619637/17ae24e6-c899-4002-bf43-751196b5cfcd" alt="GreasyFork" width="64" height="64">|**[Install the script on GreasyFork](https://greasyfork.org/scripts/471103-youtubedl)**|
 |-|-|
-|<img src="https://raw.githubusercontent.com/realcoloride/YoutubeDL/main/tampermonkey.png" alt="Tampermonkey" width="64" height="64">|[Download the Tampermonkey extension](https://www.tampermonkey.net/)|
+|<img src="https://raw.githubusercontent.com/realcoloride/YoutubeDL/main/tampermonkey.png" alt="Tampermonkey" width="64" height="64">|**[Download the Tampermonkey extension](https://www.tampermonkey.net/)**|
 |<img src="https://github.com/realcoloride/YoutubeDL/assets/108619637/32616f4d-d690-44db-897c-12ddfc16e9a1" alt="Support" width="64" height="64">|**[Check out my other scripts](https://greasyfork.org//users/1070263-realcoloride)**|
 |<img src="https://raw.githubusercontent.com/realcoloride/YoutubeDL/main/kofi.png" alt="KoFi" width="64" height="64">|**[Support me on Ko-Fi](https://ko-fi.com/coloride)**|
 |<img src="https://raw.githubusercontent.com/realcoloride/YoutubeDL/main/github.png" alt="Support" width="64" height="64">|**[Check out my other projects on Github](https://github.com/realcoloride)**|
