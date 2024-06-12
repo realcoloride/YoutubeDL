@@ -130,6 +130,10 @@
     color: rgba(0, 0, 5, 1);
 }
 .youtubeDL-text.bigger {
+    display: inline-flex;
+    align-content: stretch;
+    align-items: baseline;
+    align-content: normal;
     font-size: 22px;
 }
 .youtubeDL-text.medium {
@@ -155,7 +159,7 @@
     width: 36px;
     height: 36px;
     transform: translate(0px, 10px);
-    padding-right: 4px;
+    padding-right: 10px;
 }
 
 #youtubeDL-popup > hr {
