@@ -100,7 +100,7 @@
                 </div>
 
                 <div id="youtubeDL-quality">
-                    <span class="youtubeDL-text medium center float" >Select a quality and click on Download.</span><br>
+                    <span class="youtubeDL-text medium center float" >Select a format and click on Download.</span><br>
                     <span class="youtubeDL-text medium center float" style="margin-bottom: 10px;">
                     ⚠️ CLICK 
                     <a href="{asset}allow.gif" target="_blank"><strong>"ALWAYS ALLOW ALL DOMAINS"</strong></a>
