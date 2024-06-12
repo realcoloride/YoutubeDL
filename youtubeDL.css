@@ -139,7 +139,7 @@ a.youtubeDL-text:active {
     justify-content: flex-end;
 }
 .youtubeDL-row.light {
-    background-color: rgba(0, 0, 0, 0.2);
+    background-color: rgba(0, 0, 0, 0.2) !important;
 }
 .youtubeDL-row > span {
     padding-right: 16px;
@@ -244,6 +244,8 @@ a.youtubeDL-text:active {
     text-align: center;
     vertical-align: middle;
     font-weight: 700;
+
+    background-color: inherit;
 }
 
 .youtubeDL-credits {
