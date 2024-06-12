@@ -86,7 +86,7 @@
 .youtubeDL-text {
     font-family: "Roboto","Arial",sans-serif;
     font-size: 14px;
-    text-decoration: underline !important;
+    text-decoration: underline;
     
     color: rgba(255, 255, 255, 1) !important;
 }
