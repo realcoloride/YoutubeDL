@@ -86,7 +86,7 @@
 
     const popupHTML = `
         <div id="youtubeDL-popup">
-                <span class="youtubeDL-text bigger float">
+                <span class="youtubeDL-text bigger float" style="display: inline-flex; align-content: center; align-items: baseline; align-content: normal;">
                     <img src="{asset}YoutubeDL.png" class="youtubeDL-logo float">
                     YoutubeDL - Download video
                     <button id="youtubeDL-close" class="youtubeDL-button youtubeDL-align right" aria-label="Cancel">
