@@ -132,7 +132,7 @@ a.youtubeDL-text:active {
 }
 
 .youtubeDL-row {
-    background-color: rgba(0, 0, 0, 0.2);
+    background-color: rgba(0, 0, 0, 0.2) !important;
     border-radius: 8px;
     padding: 6px;
 
