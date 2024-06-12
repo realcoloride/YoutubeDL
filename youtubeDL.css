@@ -220,7 +220,10 @@ a.youtubeDL-text:active {
 
 .youtubeDL-column {
     background-color: rgba(164, 164, 164, 0.70);
+
+    padding-top: 0px;
     padding-bottom: 4px;
+    
     text-align: center;
     font-weight: 700;
     vertical-align: middle;
