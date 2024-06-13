@@ -866,7 +866,7 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
         await fetchPageInformation();
         await loadMedia();
 
-        loadingBarSpan.textContent = "Loading...";
+        changeLoadingText("Loading...");
     }
     async function loadMedia() {
         if (isLoadingMedia || hasLoadedMedia) return;
