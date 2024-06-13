@@ -261,6 +261,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
             if (pageInformation.searchEndpoint != null || window.self !== window.top) return;
 
             showLoadingIcon(true);
+            changeLoadingText("Fetching information...");
 
             // Scrapping internal values
             const pageRequest = await GMxmlHttpRequest({
@@ -487,7 +488,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
     function isDarkMode() {
         if (videoInformation.type == 'embed') return true;
         
-        const computedStyles = window.getComputedStyle(ytdAppContainer);
+        const computedStyles = window.getComputedStyle(document.querySelector('ytd-mini-guide-renderer'));
         const backgroundColor = computedStyles["background-color"];
 
         return backgroundColor.endsWith('15)');
@@ -846,12 +847,16 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
         isLoadingMedia = false;
         hasLoadedMedia = false;
     }
+    function changeLoadingText(text) {
+        const loadingBarSpan = getPopupElement("loading > span");
+        if (!loadingBarSpan) return;
+        loadingBarSpan.textContent = text;
+    }
+
     async function reloadMedia() {
         console.log("[YoutubeDL] Hot reloading...");
 
-        const loadingBarSpan = getPopupElement("loading > span");
-        loadingBarSpan.textContent = "Reloading...";
-        
+        changeLoadingText("Reloading...");
         isLoadingMedia = false;
 
         togglePopupLoading(true);
@@ -873,6 +878,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
 
         if (!isLoadingMedia) { togglePopup(); return; };
 
+        changeLoadingText("Loading...");
         const request = await getMediaInformation();
         if (request.status != 'ok') { fail(); return; }
 
@@ -880,6 +886,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
             if (hasLoadedMedia) return;
 
             hasLoadedMedia = true;
+            changeLoadingText("Loading medias...");
             await loadMediaFromLinks(request);
 
             togglePopupLoading(false);
