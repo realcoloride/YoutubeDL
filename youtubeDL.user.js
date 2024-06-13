@@ -159,7 +159,6 @@ or an issue with the API.
 Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
 
     // Element definitions
-    const ytdAppContainer = document.querySelector("ytd-app");
     let popupElement;
 
     // Information gathering
@@ -527,6 +526,21 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
             if (button.disabled) button.disabled = false
         }
 
+        function retryWith(url) {
+            const link = document.createElement('a');
+    
+            link.href = url;
+            link.setAttribute('download', filename);
+            link.setAttribute('target', '_blank');
+            link.click();
+            link.remove();
+
+            updatePopupButton(button, 'Downloaded!');
+            button.disabled = false;
+
+            setTimeout(finish, 1000);
+        }
+
         GMxmlHttpRequest({
             method: 'GET',
             headers: downloadHeaders,
@@ -534,7 +548,8 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
             responseType: 'blob',
             onload: async function(response) {
                 if (response.status == 403) { 
-                    alert("[YoutubeDL] Media expired or may be impossible to download, please retry or try with another format, sorry!"); 
+                    alert("[YoutubeDL] Media expired or may be impossible to download (due to a server fail or copyrighted content), please retry or try with another format/quality, sorry!"); 
+                    console.log("YoutubeDL Error:", response.finalUrl, url);
                     await reloadMedia(); 
                     return; 
                 }
@@ -544,6 +559,7 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
 
                 link.href = URL.createObjectURL(blob);
                 link.setAttribute('download', filename);
+                link.setAttribute('target', '_blank');
                 link.click();
                 link.remove();
 
@@ -555,17 +571,7 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
             },
             onerror: function(error) {
                 if (error.finalUrl == url) {
-                    const link = document.createElement('a');
-    
-                    link.href = url;
-                    link.setAttribute('download', filename);
-                    link.click();
-                    link.remove();
-
-                    updatePopupButton(button, 'Downloaded!');
-                    button.disabled = false;
-
-                    setTimeout(finish, 1000);
+                    retryWith(url);
                     return;
                 }
 
