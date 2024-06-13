@@ -153,9 +153,10 @@ Please check your firewall or try using a VPN.`;
 
 This could be either because:
 - An unhandled error
+- A livestream (that is still going on)
 - Your tampermonkey settings
 or an issue with the API.
-Try to refresh the page, otherwise, reinstall the plugin.`;
+Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
 
     // Element definitions
     const ytdAppContainer = document.querySelector("ytd-app");
@@ -458,7 +459,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
                 responseType: 'text',
             });
 
-            console.trace(`[YouTubeDL] Debug response from server (${request.status}): ${request.responseText}`);
+            // console.trace(`[YouTubeDL] Debug response from server (${request.status}): ${request.responseText}`);
             result = JSON.parse(request.responseText);
         }
 
