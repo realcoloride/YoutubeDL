@@ -220,26 +220,40 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
 
     // potentially adds support for violentmonkey idk
     async function GMxmlHttpRequest(payload, retries = 15, delay = 2000) {
-        const attemptRequest = async (attempt) => {
-            return new Promise((resolve, reject) => {
-                GM.xmlHttpRequest({
-                    ...payload,
-                    onload: (response) => {
-                        if (response.status != 429) {
-                            payload.onload == undefined ? resolve(response) : payload.onload(response);
-                            return;
-                        }
-                        
-                        console.log(`[YouTubeDL] Request failed due to rate limit (429), retrying in ${delay}ms. [${attempt}/${retries}]`);
-                        if (attempt < retries)
-                            setTimeout(() => attemptRequest(attempt + 1), delay * (attempt + 1));
-                        else reject(response);
-                    },
-                });
-            });
-        };
-    
-        return attemptRequest(0);
+        let solved = null;
+
+        function wait(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        const onload = payload.onload;
+        delete payload["onload"];
+
+        function returnResult(resolve) {
+            resolve(onload == undefined ? resolve(solved) : onload(solved));
+        }
+
+        return new Promise(async (resolve, _) => {
+            for (let attempt = 0; attempt < retries; attempt++) {
+                if (solved || attempt >= retries) {
+                    returnResult(resolve);
+                    return;
+                }
+
+                const request = await GM.xmlHttpRequest(payload);
+
+                if (request.status != 429) {
+                    solved = request;
+                    returnResult(resolve);
+                    return;
+                }
+
+                console.log(`[YouTubeDL] Request failed due to rate limit (429), retrying in ${delay}ms. [${attempt}/${retries}]`);
+                await wait(delay * (attempt + 1));
+            }
+
+            loop();
+        });
     }
 
     async function fetchPageInformation(needed = true) {
@@ -443,7 +457,7 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
                 responseType: 'text',
             });
 
-            console.log(`[YouTubeDL] Debug response from server (${request.status}): ${request.responseText}`);
+            console.trace(`[YouTubeDL] Debug response from server (${request.status}): ${request.responseText}`);
             result = JSON.parse(request.responseText);
         }
 
@@ -837,6 +851,8 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
 
         const loadingBarSpan = getPopupElement("loading > span");
         loadingBarSpan.textContent = "Reloading...";
+        
+        isLoadingMedia = false;
 
         togglePopupLoading(true);
         clearMedia();
@@ -861,9 +877,11 @@ Try to refresh the page, otherwise, reinstall the plugin.`;
         if (request.status != 'ok') { fail(); return; }
 
         try {
-            await loadMediaFromLinks(request);
+            if (hasLoadedMedia) return;
 
             hasLoadedMedia = true;
+            await loadMediaFromLinks(request);
+
             togglePopupLoading(false);
         } catch (error) {
             console.error("[YoutubeDL] Failed fetching media content: ", error);
