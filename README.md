@@ -57,6 +57,7 @@ Make sure to click on "Always allow all domains" (read below) when downloading a
 |Problem|Solution|
 |-|-|
 |🙈 Button not appearing?|Try reloading the page.|
+|😵‍💫 Tab appearing with a video instead of downloading?|Try doing right click on the video and clicking on **Save video as...**. This happens when the browser has tried everything to download the file but failed, as a backup.|
 |⛔ Download keeps failing|This can either be an issue relating to rate limit or your antivirus. Either way, refreshing the page or making an exception (on your antivirus) can sometimes help.|
 |💡 You have an idea, suggestion, or want to share feedback?|Contact me or open an [Issue](/issues/).|
 |❓ Other unlisted problems?|Try opening an [Issue](/issues/).|
