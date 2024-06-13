@@ -15,12 +15,6 @@
 
 \*_Certain providers might not support up to 4K on all videos due to geo-restrictions or other technical issues._
 
-# Early access
-
-Try the 1.1.0 version (better, faster, proper embed everywhere support) in early access here: https://github.com/realcoloride/YoutubeDL/raw/main/youtubeDL.user.js
-
-Make sure to click on "Always allow all domains" (read below) when downloading and to report bugs if you see some until the official release.
-
 # Demonstration
 #### See it in action
 
