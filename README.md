@@ -72,4 +72,4 @@ Make sure to click on "Always allow all domains" (read below) when downloading a
 # License
 🤝 Distributed with the MIT License. (real)coloride - 2023-2024
 
-❤️ If you like this script, please check out [my other Tampermonkey scripts](https://greasyfork.org/fr/users/1070263-realcoloride).
+❤️ If you like this script, please check out [my other Tampermonkey scripts](https://greasyfork.org/users/1070263-realcoloride).
