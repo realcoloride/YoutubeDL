@@ -17,6 +17,7 @@
 // @connect      dlsnap02.xyz
 // @connect      y2mate.com
 // @connect      utomp3.com
+// @connect      tomp3.cc
 // @connect      githubusercontent.com
 // @connect      greasyfork.org
 // @connect      *
@@ -742,7 +743,8 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
                 const unit = regexMatch != null ? regexMatch[0] : " MB";
                 const sizeNoUnit = size.replace(regex, "");
                 const roundedSize = parseFloat(sizeNoUnit).toFixed(1);
-                
+                if (roundedSize == NaN) roundedSize = 0;
+            
                 size = `${roundedSize}${unit}`;
                 if (roundedSize == 0 && unit == ' B') size = "?";
 
