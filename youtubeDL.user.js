@@ -26,6 +26,8 @@
 // @grant        GM.xmlHttpRequest
 // @grant        GM_openInTab
 // @grant        GM.openInTab
+// @grant        GM_download
+// @grant        GM.download
 // ==/UserScript==
 
 (function() {
@@ -74,7 +76,7 @@
         "x-requested-key": "de0cfuirtgf67a"
     };
     const downloadHeaders = {
-        "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+        //"accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
         "accept-language": "en-US,en;q=0.9",
         "priority": "u=0, i",
         "sec-ch-ua": "\"Not/A)Brand\";v=\"8\", \"Chromium\";v=\"126\", \"Google Chrome\";v=\"126\"",
@@ -530,6 +532,20 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
         }
     }
 
+    function parseHeaders(headersString) {
+        const headers = {};
+        const lines = headersString.trim().split(/[\r\n]+/);
+    
+        lines.forEach((line) => {
+            const parts = line.split(': ');
+            const header = parts.shift().toLowerCase();
+            const value = parts.join(': ');
+            headers[header] = value;
+        });
+    
+        return headers;
+    }
+
     // Popup
     // Links
     // Downloading
@@ -546,14 +562,8 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
             if (button.disabled) button.disabled = false
         }
 
-        function retryWith(url) {
-            const link = document.createElement('a');
-    
-            link.href = url;
-            link.setAttribute('download', filename);
-            link.setAttribute('target', '_blank');
-            link.click();
-            link.remove();
+        async function retryWith(url) {
+            GM.openInTab(url);
 
             updatePopupButton(button, 'Downloaded!');
             button.disabled = false;
@@ -565,7 +575,7 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
             method: 'GET',
             headers: downloadHeaders,
             url: url,
-            responseType: 'text',
+            responseType: 'blob',
             onload: async function(response) {
                 if (response.status == 403) { 
                     alert("[YoutubeDL] Media expired or may be impossible to download (due to a server fail or copyrighted content), please retry or try with another format/quality, sorry!"); 
@@ -573,11 +583,13 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
                     await reloadMedia(); 
                     return; 
                 }
-                
-                // switched to text because for some reason exceeding some weird unknown size limit will make the blob turn undefined
-                // is this a tampermonkey issue? i don't know. atleast i know texts don't have issues.
-                const text = response.responseText;
-                const blob = new Blob([text], { type: 'text/plain' });
+
+                if (response.response == undefined) {
+                    await retryWith(response.finalUrl);
+                    return;
+                }
+
+                const blob = response.response;
                 const link = document.createElement('a');
         
                 link.href = URL.createObjectURL(blob);
@@ -585,7 +597,7 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
                 link.setAttribute('target', '_blank');
                 document.body.appendChild(link); // firefox compatibility
                 link.click();
-                link.remove();
+                console.log(link);
         
                 URL.revokeObjectURL(link.href);
                 updatePopupButton(button, 'Downloaded!');
