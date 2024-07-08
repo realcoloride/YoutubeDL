@@ -738,16 +738,17 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
                 const quality = information.q;
                 let size = information.size;
 
+                if (size == 'MB') size = '0 MB';
+
                 const regex = /\s[BKMGT]?B/;
                 const regexMatch = size.match(regex);
                 const unit = regexMatch != null ? regexMatch[0] : " MB";
                 const sizeNoUnit = size.replace(regex, "");
                 const roundedSize = parseFloat(sizeNoUnit).toFixed(1);
-                console.log(roundedSize);
-                if (roundedSize == NaN) roundedSize = 0;
             
                 size = `${roundedSize}${unit}`;
-                if (roundedSize == 0 && unit == ' B') size = "?";
+                if (Math.round(roundedSize) == 0 && unit == ' B') size = "?";
+                if (roundedSize == '0.0') size = "?";
 
                 createMediaFile({
                     extension: format, 
