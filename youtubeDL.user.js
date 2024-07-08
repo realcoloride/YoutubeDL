@@ -743,6 +743,7 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
                 const unit = regexMatch != null ? regexMatch[0] : " MB";
                 const sizeNoUnit = size.replace(regex, "");
                 const roundedSize = parseFloat(sizeNoUnit).toFixed(1);
+                console.log(roundedSize);
                 if (roundedSize == NaN) roundedSize = 0;
             
                 size = `${roundedSize}${unit}`;
