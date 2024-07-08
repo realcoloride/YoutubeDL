@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YoutubeDL
 // @namespace    https://www.youtube.com/
-// @version      1.1.0
+// @version      1.1.1
 // @description  Download youtube videos at the comfort of your browser.
 // @author       realcoloride
 // @match        https://www.youtube.com/*
@@ -15,6 +15,8 @@
 // @connect      dlsnap11.xyz
 // @connect      dlsnap06.xyz
 // @connect      dlsnap02.xyz
+// @connect      y2mate.com
+// @connect      utomp3.com
 // @connect      githubusercontent.com
 // @connect      greasyfork.org
 // @connect      *
@@ -31,14 +33,14 @@
 
     let pageInformation = {
         loaded : false,
-        website : "https://savetube.io/",
+        website : "https://www.y2mate.com/",
         searchEndpoint : null,
         convertEndpoint : null,
         checkingEndpoint : null,
         pageValues : {}
     }
 
-    let version = '1.1.0';
+    let version = '1.1.1';
 
     // Process:
     // Search -> Checking -> Convert by -> Convert using c_server
@@ -204,11 +206,15 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
       
         const variableAssignments = variableString.match(/var\s+(\w+)\s*=\s*(.+?);/g);
       
+        if (variableAssignments == null) return variableDict;
         variableAssignments.forEach((assignment) => {
-            const [, variableName, variableValue] = assignment.match(/var\s+(\w+)\s*=\s*['"](.+?)['"];/);
-            const trimmedValue = variableValue.trim().replace(/^['"]|['"]$/g, '');
-        
-            variableDict[variableName] = trimmedValue;
+            const match = assignment.match(/var\s+(\w+)\s*=\s*['"](.+?)['"];/);
+            if (match) {
+                const [, variableName, variableValue] = match;
+                const trimmedValue = variableValue.trim().replace(/^['"]|['"]$/g, '').replace(/\\/g, '');
+            
+                variableDict[variableName] = trimmedValue;
+            }
         });
       
         return variableDict;
@@ -276,10 +282,10 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
             const pageDocument = parser.parseFromString(pageRequest.responseText, "text/html");
     
             let scrappedScriptElement;
-    
+
             pageDocument.querySelectorAll("script").forEach((scriptElement) => {
                 const scriptHTML = scriptElement.innerHTML;
-                if (scriptHTML.includes("k_time") && scriptHTML.includes("k_page")) {
+                if (scriptHTML.includes("k_time") || scriptHTML.includes("k_page")) {
                     scrappedScriptElement = scriptElement;
                     return;
                 }
@@ -288,8 +294,8 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
             const pageValues = decipherVariables(scrappedScriptElement.innerHTML);
             pageInformation.pageValues = pageValues;
     
-            pageInformation.searchEndpoint = pageValues['k_url_search'];
-            pageInformation.convertEndpoint = pageValues['k_url_convert'];
+            pageInformation.searchEndpoint = pageValues['k_url_search'] ?? pageValues['k_analyze_url'];
+            pageInformation.convertEndpoint = pageValues['k_url_convert'] ?? pageValues['k_convert_url'];
             pageInformation.checkingEndpoint = pageValues['k_url_check_task'];
 
             showLoadingIcon(false);
@@ -305,9 +311,12 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
 
         const initialFormData = new FormData();
         initialFormData.append('v_id', videoId);
+        initialFormData.append('vid', videoId);
         initialFormData.append('ftype', fileExtension); 
         initialFormData.append('fquality', fileQuality);
+        initialFormData.append('fname', filename);
         initialFormData.append('token', token);
+        initialFormData.append('k', token);
         initialFormData.append('timeExpire', timeExpires);
         initialFormData.append('client', 'SnapSave.io');
         const initialRequestBody = new URLSearchParams(initialFormData).toString();
@@ -330,7 +339,7 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
             const initialResponse = JSON.parse(initialRequest.responseText);
 
             // Needs conversion is it links to a server
-            const downloadLink = initialResponse.d_url;
+            const downloadLink = initialResponse.d_url ?? initialResponse.dlink;
             const needsConversation = (downloadLink == null);
             
             if (needsConversation) {
@@ -339,10 +348,12 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
 
                 const convertFormData = new FormData();
                 convertFormData.append('v_id', videoId);
+                convertFormData.append('vid', videoId);
                 convertFormData.append('ftype', fileExtension); 
                 convertFormData.append('fquality', fileQuality);
                 convertFormData.append('fname', filename);
                 convertFormData.append('token', token);
+                convertFormData.append('k', token);
                 convertFormData.append('timeExpire', timeExpires);
                 const convertRequestBody = new URLSearchParams(convertFormData).toString();
 
@@ -374,6 +385,7 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
                     adaptedResponse = {
                         c_status : "error"
                     }
+                    console.log("[YoutubeDL] Error details: ", convertRequest.responseText);
                     return adaptedResponse;
                 }
 
@@ -435,19 +447,24 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
         return result;
     }
     async function getMediaInformation() {
+        let result = { status: 'notok' };
+
         const videoType = videoInformation.type;
         const videoId = videoInformation.videoId;
 
-        if (!videoType) return;
+        changeLoadingText("Loading...");
+
+        if (!videoType) return result;
 
         const formData = new FormData();
-        formData.append('q', `https://www.youtube.com/watch?v=${videoId}`);
+        const link = `https://www.youtube.com/watch?v=${videoId}`;
+        formData.append('q', link);
         formData.append('vt', 'home');
+        formData.append('k_query', link);
+        formData.append('k_page', 'home');
+        formData.append('hl', 'en');
+        formData.append('q_auto', '1');
         const requestBody = new URLSearchParams(formData).toString();
-
-        let result = {
-            status: 'notok'
-        };
 
         async function tryRequest() {
             const request = await GMxmlHttpRequest({
@@ -458,7 +475,7 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
                 responseType: 'text',
             });
 
-            // console.trace(`[YouTubeDL] Debug response from server (${request.status}): ${request.responseText}`);
+            //console.trace(`[YouTubeDL] Debug response from server (${request.status}): ${request.responseText}`);
             result = JSON.parse(request.responseText);
         }
 
@@ -475,7 +492,7 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
             }
 
             // after that consider it as total failure
-            if (result.status == 'error') throw new Error(request.responseText);
+            if (result.status == 'error') throw new Error(result);
         } catch (error) {
             console.error(error);
             return result;
@@ -658,7 +675,8 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
                 if (extension == "mp3") filename = `YoutubeDL_${videoTitle}.${extension}`;
                 
                 const conversionRequest = await startConversion(extension, quality, timeExpires, token, filename, downloadButton);
-                const conversionStatus = conversionRequest.c_status;
+                let conversionStatus = conversionRequest.c_status;
+                if (conversionStatus == "CONVERTED") conversionStatus = 'ok';
 
                 async function fail(status) {
                     throw Error("Failed to download: " + status);
@@ -667,7 +685,7 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
                 if (!conversionStatus) { fail(conversionStatus ?? "unknown"); return; }
                 if (conversionStatus != 'ok' && conversionStatus != 'success') { fail(conversionStatus); return; }
 
-                const downloadLink = conversionRequest.d_url;
+                const downloadLink = conversionRequest.d_url ?? conversionRequest.dlink;
                 await downloadFile(downloadButton, downloadLink, filename);
             } catch (error) {
                 console.error(error);
@@ -706,9 +724,10 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
                 let size = information.size;
 
                 const regex = /\s[BKMGT]?B/;
-                const unit = size.match(regex)[0];
+                const regexMatch = size.match(regex);
+                const unit = regexMatch != null ? regexMatch[0] : " MB";
                 const sizeNoUnit = size.replace(regex, "");
-                const roundedSize = Math.round(parseFloat(sizeNoUnit));
+                const roundedSize = parseFloat(sizeNoUnit).toFixed(1);
                 
                 size = `${roundedSize}${unit}`;
                 if (roundedSize == 0 && unit == ' B') size = "?";
@@ -721,7 +740,7 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
 
                     format: format.toUpperCase(),
                     size,
-                    token
+                    token: token ?? information.k
                 });
             }
 
@@ -733,7 +752,7 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
             }
 
             // Audio will only have this one so it doesnt matter
-            const defaultAudioFormat = audioLinks[Object.keys(audioLinks)[0]];
+            const defaultAudioFormat = audioLinks[Object.keys(audioLinks).find(key => key.startsWith("mp3"))];
             defaultAudioFormat.f = "mp3 (audio)";
 
             addFormat(defaultAudioFormat);
@@ -742,12 +761,8 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
             // Remove auto quality
             videoLinks["auto"] = null;
 
-            // Do not store 3gp quality if available
-            const low3gpFormat = { ...videoLinks["3gp@144p"] };
-            delete videoLinks["3gp@144p"];
-
             // Sort from highest to lowest quality
-            const qualities = {};
+            let qualities = {};
 
             for (const [qualityId, information] of Object.entries(videoLinks)) {
                 if (!information) continue;
@@ -816,14 +831,31 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
                     const currentSize = currentQualityInformation.size;
                     const currentSizeBytes = convertSizeToBytes(currentSize);
 
-                    if (previousSizeBytes < currentSizeBytes) swap();
+                    if (previousSizeBytes > currentSizeBytes) swap();
                 });
             };
+            
+            // sort quality if needed one more time
+            for (const information of Object.values(videoLinks)) {
+                if (!information) continue;
+
+                const qualityName = information.q;
+                const strippedQualityName = qualityName.replace('p', '');
+                const quality = parseInt(strippedQualityName);
+
+                videoLinks[quality] = information;
+            }
 
             for (let i = 0; i < Object.keys(videoLinks).length; i++) bubbleSwap();
-            
-            for (const [qualityId, information] of Object.entries(videoLinks)) {
-                if (!information) continue;
+
+            // and then finally ensure the order is descending
+            let sortedKeys = Object.keys(videoLinks).sort((a, b) => b - a);
+
+            sortedKeys.forEach(qualityId => {
+                if (qualityId == "undefined") return;
+                const information = videoLinks[parseInt(qualityId)];
+
+                if (!information) return;
 
                 const qualityName = information.q;
                 const strippedQualityName = qualityName.replace('p', '');
@@ -831,9 +863,7 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
 
                 qualities[quality] = qualityId;
                 addFormat(information);
-            }
-
-            if (low3gpFormat) addFormat(low3gpFormat);
+            });
         } catch (error) {
             console.error("[YoutubeDL] Failed loading media:", error);
             alert(mediaErrorMessage);
@@ -885,7 +915,6 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
 
         if (!isLoadingMedia) { togglePopup(); return; };
 
-        changeLoadingText("Loading...");
         const request = await getMediaInformation();
         if (request.status != 'ok') { fail(); return; }
 
