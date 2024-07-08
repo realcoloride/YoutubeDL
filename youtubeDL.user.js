@@ -597,7 +597,7 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
                 link.setAttribute('target', '_blank');
                 document.body.appendChild(link); // firefox compatibility
                 link.click();
-                console.log(link);
+                link.remove();
         
                 URL.revokeObjectURL(link.href);
                 updatePopupButton(button, 'Downloaded!');
