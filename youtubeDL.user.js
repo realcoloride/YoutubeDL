@@ -33,7 +33,7 @@
 
     let pageInformation = {
         loaded : false,
-        website : "https://www.y2mate.com/",
+        website : "https://www.tomp3.cc/",
         searchEndpoint : null,
         convertEndpoint : null,
         checkingEndpoint : null,
@@ -74,9 +74,10 @@
         "x-requested-key": "de0cfuirtgf67a"
     };
     const downloadHeaders = {
-        "accept": "*/*",
+        "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
         "accept-language": "en-US,en;q=0.9",
         "priority": "u=0, i",
+        "sec-ch-ua": "\"Not/A)Brand\";v=\"8\", \"Chromium\";v=\"126\", \"Google Chrome\";v=\"126\"",
         "sec-ch-ua-mobile": "?0",
         "sec-ch-ua-platform": "\"Windows\"",
         "sec-fetch-dest": "document",
@@ -211,7 +212,7 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
             const match = assignment.match(/var\s+(\w+)\s*=\s*['"](.+?)['"];/);
             if (match) {
                 const [, variableName, variableValue] = match;
-                const trimmedValue = variableValue.trim().replace(/^['"]|['"]$/g, '').replace(/\\/g, '');
+                const trimmedValue = variableValue.trim().replace(/^['"]|['"]$/g, '').replace(/\\/g, '').split('?')[0];
             
                 variableDict[variableName] = trimmedValue;
             }
@@ -281,17 +282,18 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
             const parser = new DOMParser();
             const pageDocument = parser.parseFromString(pageRequest.responseText, "text/html");
     
-            let scrappedScriptElement;
+            let scrappedScriptInnerHTML = "";
 
             pageDocument.querySelectorAll("script").forEach((scriptElement) => {
                 const scriptHTML = scriptElement.innerHTML;
-                if (scriptHTML.includes("k_time") || scriptHTML.includes("k_page")) {
-                    scrappedScriptElement = scriptElement;
-                    return;
-                }
+
+                if (scriptHTML.includes("k_url_search") || scriptHTML.includes("k_analyze_url") ||
+                    scriptHTML.includes("k_time") || scriptHTML.includes("k_page"))
+                        scrappedScriptInnerHTML += "\n" + scriptHTML;
+                    //return;
             });
     
-            const pageValues = decipherVariables(scrappedScriptElement.innerHTML);
+            const pageValues = decipherVariables(scrappedScriptInnerHTML);
             pageInformation.pageValues = pageValues;
     
             pageInformation.searchEndpoint = pageValues['k_url_search'] ?? pageValues['k_analyze_url'];
@@ -459,7 +461,8 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
         const formData = new FormData();
         const link = `https://www.youtube.com/watch?v=${videoId}`;
         formData.append('q', link);
-        formData.append('vt', 'home');
+        formData.append('query', link);
+        formData.append('vt', 'downloader');
         formData.append('k_query', link);
         formData.append('k_page', 'home');
         formData.append('hl', 'en');
@@ -531,12 +534,12 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
     // Links
     // Downloading
     async function downloadFile(button, url, filename) {
-        const baseText = `Download`;
+        const baseText = "Download";
         
         button.disabled = true;
         updatePopupButton(button, "Downloading...");
     
-        console.log(`[YoutubeDL] Downloading media URL: ${url}`);
+        console.trace(`[YoutubeDL] Downloading media URL: ${url}`);
         
         function finish() {
             updatePopupButton(button, baseText);
@@ -562,7 +565,7 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
             method: 'GET',
             headers: downloadHeaders,
             url: url,
-            responseType: 'blob',
+            responseType: 'text',
             onload: async function(response) {
                 if (response.status == 403) { 
                     alert("[YoutubeDL] Media expired or may be impossible to download (due to a server fail or copyrighted content), please retry or try with another format/quality, sorry!"); 
@@ -571,38 +574,37 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
                     return; 
                 }
                 
-                const blob = response.response;
+                // switched to text because for some reason exceeding some weird unknown size limit will make the blob turn undefined
+                // is this a tampermonkey issue? i don't know. atleast i know texts don't have issues.
+                const text = response.responseText;
+                const blob = new Blob([text], { type: 'text/plain' });
                 const link = document.createElement('a');
-
+        
                 link.href = URL.createObjectURL(blob);
                 link.setAttribute('download', filename);
                 link.setAttribute('target', '_blank');
+                document.body.appendChild(link); // firefox compatibility
                 link.click();
                 link.remove();
-
+        
                 URL.revokeObjectURL(link.href);
                 updatePopupButton(button, 'Downloaded!');
                 button.disabled = false;
-
+        
                 setTimeout(finish, 1000);
             },
             onerror: function(error) {
-                if (error.finalUrl == url) {
-                    retryWith(url);
-                    return;
-                }
-
                 console.error('[YoutubeDL] Download Error:', error);
                 updatePopupButton(button, 'Download Failed');
-                
                 setTimeout(finish, 1000);
-            }, 
+            },
             onprogress: function(progressEvent) {
                 if (progressEvent.lengthComputable) {
                     const percentComplete = Math.round((progressEvent.loaded / progressEvent.total) * 100);
                     updatePopupButton(button, `Downloading: ${percentComplete}%`);
-                } else
+                } else {
                     updatePopupButton(button, 'Downloading...');
+                }
             }
         });
     }
