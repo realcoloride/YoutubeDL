@@ -76,14 +76,14 @@
     const downloadHeaders = {
         "accept": "*/*",
         "accept-language": "en-US,en;q=0.9",
-        "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
-        "sec-ch-ua": "\"Google Chrome\";v=\"125\", \"Chromium\";v=\"125\", \"Not.A/Brand\";v=\"24\"",
+        "priority": "u=0, i",
         "sec-ch-ua-mobile": "?0",
         "sec-ch-ua-platform": "\"Windows\"",
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "same-origin",
-        "x-requested-with": "XMLHttpRequest"
+        "sec-fetch-dest": "document",
+        "sec-fetch-mode": "navigate",
+        "sec-fetch-site": "cross-site",
+        "sec-fetch-user": "?1",
+        "upgrade-insecure-requests": "1"
     };
 
     const popupHTML = `
@@ -891,10 +891,11 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
     }
 
     async function reloadMedia() {
-        console.log("[YoutubeDL] Hot reloading...");
+        console.trace("[YoutubeDL] Hot reloading...");
 
         changeLoadingText("Reloading...");
         isLoadingMedia = false;
+        hasLoadedMedia = false;
 
         togglePopupLoading(true);
         clearMedia();
