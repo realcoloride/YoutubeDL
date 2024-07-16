@@ -27,7 +27,6 @@
 // @grant        GM.xmlHttpRequest
 // @grant        GM_openInTab
 // @grant        GM.openInTab
-// @grant        GM_download
 // @grant        GM.download
 // ==/UserScript==
 
