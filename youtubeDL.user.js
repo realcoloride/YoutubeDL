@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YoutubeDL
 // @namespace    https://www.youtube.com/
-// @version      1.1.1
+// @version      1.1.2
 // @description  Download youtube videos at the comfort of your browser.
 // @author       realcoloride
 // @match        https://www.youtube.com/*
@@ -42,7 +42,7 @@
         pageValues : {}
     }
 
-    let version = '1.1.1';
+    let version = '1.1.2';
 
     // Process:
     // Search -> Checking -> Convert by -> Convert using c_server
@@ -163,8 +163,25 @@ This could be either because:
 or an issue with the API.
 Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
 
+    // TrustedHTML
+    const policy = window["trustedTypes"] != null ? trustedTypes.createPolicy("YouTubeDL_ForceInner", { createHTML: (target) => target }) : null;
+
     // Element definitions
     let popupElement;
+
+    // Helper function to create safe elements in trustedHTML policy
+    function createSafeElement(tag, content = "", attributes = {}) {
+        const element = document.createElement(tag);
+
+        element.innerHTML = policy ? policy.createHTML(content) : content;
+        element.editInnerHTML = (newContent) => element.innerHTML = policy ? policy.createHTML(newContent) : newContent;
+
+        // Set any additional attributes
+        for (const [key, value] of Object.entries(attributes))
+            element.setAttribute(key, value);
+
+        return element;
+    }
 
     // Information gathering
     function getVideoInformation(url) {
@@ -282,7 +299,8 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
             });
     
             const parser = new DOMParser();
-            const pageDocument = parser.parseFromString(pageRequest.responseText, "text/html");
+            const pageDocument = parser.parseFromString(
+                policy?.createHTML(pageRequest.responseText) ?? pageRequest.responseText, "text/html");
     
             let scrappedScriptInnerHTML = "";
 
@@ -590,11 +608,12 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
                 }
 
                 const blob = response.response;
-                const link = document.createElement('a');
+                const link = createSafeElement('a', "", {
+                    href: URL.createObjectURL(blob),
+                    'download': filename,
+                    'target': '_blank'
+                });
         
-                link.href = URL.createObjectURL(blob);
-                link.setAttribute('download', filename);
-                link.setAttribute('target', '_blank');
                 document.body.appendChild(link); // firefox compatibility
                 link.click();
                 link.remove();
@@ -621,7 +640,7 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
         });
     }
     function updatePopupButton(button, text) {
-        button.innerHTML = `<strong>${text}</strong>`;
+        button.editInnerHTML(`<strong>${text}</strong>`);
         if (!isDarkMode()) button.classList.add('light');
     }
     async function createMediaFile(params) {
@@ -629,11 +648,11 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
 
         const qualityContainer = getPopupElement("quality-container");
 
-        const row = document.createElement("tr");
+        const row = createSafeElement("tr");
         row.classList.add("youtubeDL-row");
 
         function createRowElement() {
-            const rowElement = document.createElement("td");
+            const rowElement = createSafeElement("td");
             rowElement.classList.add("youtubeDL-row-element");
 
             return rowElement;
@@ -643,10 +662,9 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
         }
 
         function createSpanText(text, targetElement) {
-            const spanText = document.createElement("span");
+            const spanText = createSafeElement("span", `<strong>${text}</strong>`);
             spanText.classList.add("youtubeDL-text");
 
-            spanText.innerHTML = `<strong>${text}</strong>`;
             if (!isDarkMode()) spanText.classList.add('light');
 
             targetElement.appendChild(spanText);
@@ -668,9 +686,8 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
         addRowElement(sizeRowElement);
 
         const downloadRowElement = createRowElement();
-        const downloadButton = document.createElement("button");
+        const downloadButton = createSafeElement("button", "", { ariaLabel: "Download" });
         downloadButton.classList.add("youtubeDL-button");
-        downloadButton.ariaLabel = "Download";
         updatePopupButton(downloadButton, "Download");
 
         downloadButton.addEventListener("click", async(_) => {
@@ -896,7 +913,7 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
     let hasLoadedMedia = false;
     function clearMedia() {
         const qualityContainer = getPopupElement("quality-container");
-        qualityContainer.innerHTML = "";
+        qualityContainer.editInnerHTML("");
 
         isLoadingMedia = false;
         hasLoadedMedia = false;
@@ -1089,13 +1106,12 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
             return;
         }
 
-        popupElement = document.createElement("div");
-        popupElement.id = "youtubeDL-popup-bg";
-        // avoids replacement
-        popupElement.style = `line-height: initial; font-size: initial; z-index: ${Number.MAX_SAFE_INTEGER}`;
-
         const revisedHTML = popupHTML.replaceAll('{asset}', githubAssetEndpoint);
-        popupElement.innerHTML = revisedHTML;
+
+        popupElement = createSafeElement("div", revisedHTML, {
+            id: "youtubeDL-popup-bg",
+            style: `line-height: initial; font-size: initial; z-index: ${Number.MAX_SAFE_INTEGER}`
+        });
 
         document.body.appendChild(popupElement);
 
@@ -1202,19 +1218,22 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
         targets.forEach((target) => {
             if (injectedShorts.includes(target)) return;
 
-            const downloadButton = document.createElement("button");
+            const downloadButton = createSafeElement(
+                "button",
+                `<img src="${getAsset(hasFailedLoadingPageInformation ? "YoutubeDL-warning.png" : "YoutubeDL.png")}" style="${style}" width="36" height="36">`,
+                {
+                    id: 'youtubeDL-download',
+                    'data-title-no-tooltip': 'YoutubeDL',
+                    'aria-keyshortcuts': 'SHIFT+d',
+                    'aria-label': 'Next keyboard shortcut SHIFT+d',
+                    'data-duration': '',
+                    'data-preview': '',
+                    'data-tooltip-text': '',
+                    href: '',
+                    title: 'Download Video'
+                }
+            );
             downloadButton.classList.add("ytp-button");
-            downloadButton.innerHTML = `<img src="${getAsset(hasFailedLoadingPageInformation ? "YoutubeDL-warning.png" : "YoutubeDL.png")}" style="${style}" width="36" height="36">`;
-    
-            downloadButton.id = 'youtubeDL-download'
-            downloadButton.setAttribute('data-title-no-tooltip', 'YoutubeDL');
-            downloadButton.setAttribute('aria-keyshortcuts', 'SHIFT+d');
-            downloadButton.setAttribute('aria-label', 'Next keyboard shortcut SHIFT+d');
-            downloadButton.setAttribute('data-duration', '');
-            downloadButton.setAttribute('data-preview', '');
-            downloadButton.setAttribute('data-tooltip-text', '');
-            downloadButton.setAttribute('href', '');
-            downloadButton.setAttribute('title', 'Download Video');
     
             downloadButton.addEventListener("click", async(_) => {
                 if (hasFailedLoadingPageInformation) {
@@ -1269,8 +1288,7 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
                 url: url,
                 onload: function(response) {
                     if (response.status === 200) {
-                        const style = document.createElement('style');
-                        style.innerHTML = response.responseText;
+                        const style = createSafeElement('style', response.responseText);
                         document.head.appendChild(style);
                         resolve();
                     } else reject(new Error('Failed to load CSS'));
