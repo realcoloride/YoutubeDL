@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YoutubeDL
 // @namespace    https://www.youtube.com/
-// @version      1.1.2
+// @version      1.1.3
 // @description  Download youtube videos at the comfort of your browser.
 // @author       realcoloride
 // @match        https://www.youtube.com/*
@@ -42,7 +42,7 @@
         pageValues : {}
     }
 
-    let version = '1.1.2';
+    let version = '1.1.3';
 
     // Process:
     // Search -> Checking -> Convert by -> Convert using c_server
@@ -913,7 +913,7 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
     let hasLoadedMedia = false;
     function clearMedia() {
         const qualityContainer = getPopupElement("quality-container");
-        qualityContainer.editInnerHTML("");
+        qualityContainer.innerHTML = policy ? policy.createHTML("") : "";
 
         isLoadingMedia = false;
         hasLoadedMedia = false;
@@ -937,6 +937,7 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
         await fetchPageInformation();
         await loadMedia();
 
+        console.log("t");
         changeLoadingText("Loading...");
     }
     async function loadMedia() {
