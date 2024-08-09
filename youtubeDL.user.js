@@ -937,7 +937,6 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
         await fetchPageInformation();
         await loadMedia();
 
-        console.log("t");
         changeLoadingText("Loading...");
     }
     async function loadMedia() {
