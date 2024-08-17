@@ -1,14 +1,14 @@
 // ==UserScript==
 // @name         YoutubeDL
 // @namespace    https://www.youtube.com/
-// @version      1.1.3
+// @version      1.1.4
 // @description  Download youtube videos at the comfort of your browser.
 // @author       realcoloride
 // @match        https://www.youtube.com/*
 // @match        https://www.youtube.com/watch*
 // @match        https://www.youtube.com/shorts*
 // @match        https://www.youtube.com/embed*
-// @match        */*
+// @match        *://*/*
 // @connect      savetube.io
 // @connect      googlevideo.com
 // @connect      aadika.xyz
@@ -28,6 +28,9 @@
 // @grant        GM_openInTab
 // @grant        GM.openInTab
 // @grant        GM.download
+// @grant        GM_setValue
+// @grant        GM_getValue
+// @grant        GM_addValueChangeListener
 // ==/UserScript==
 
 (function() {
@@ -35,14 +38,15 @@
 
     let pageInformation = {
         loaded : false,
-        website : "https://www.tomp3.cc/",
+        ajaxLike: false,
+        website : "https://download.y2api.com/api/widgetplus?url=",
         searchEndpoint : null,
         convertEndpoint : null,
         checkingEndpoint : null,
         pageValues : {}
     }
 
-    let version = '1.1.3';
+    let version = '1.1.4';
 
     // Process:
     // Search -> Checking -> Convert by -> Convert using c_server
@@ -51,7 +55,7 @@
     const updateGreasyUrl = "https://greasyfork.org/scripts/471103-youtubedl/versions.json";
 
     let videoInformation;
-    const fetchHeaders = {
+    let fetchHeaders = {
         "accept": "*/*",
         "accept-language": "en-US,en;q=0.9",
         "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -282,6 +286,25 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
         });
     }
 
+    function pageInformationIfAjaxLike(ajaxValue, notAjaxValue) {
+        return pageInformation.ajaxLike ? ajaxValue : notAjaxValue;
+    }
+    let resolveCurrentMediaInformationFetch;
+    let currentNonAjaxiFrame;
+    async function fetchNonAjaxMediaInformation(attempts = 0) {
+        return new Promise((resolve, reject) => {
+            if (attempts >= 5) return reject("Too many attempts at getting the download token"); 
+            resolveCurrentMediaInformationFetch = resolve;
+
+            const src = `https://download.y2api.com/api/widgetplus?url=https://www.youtube.com/watch?v=${videoInformation.videoId}`;
+            currentNonAjaxiFrame = createSafeElement("iframe", "", { width: "0", height: "0", border: "none", src });
+            document.body.appendChild(currentNonAjaxiFrame);
+            console.log(currentNonAjaxiFrame);
+            
+            currentNonAjaxiFrame.onload = () => sendToBottomWindows("YouTubeDL_fetchMediaInformation", `${pageInformation.searchEndpoint}/api/v4/info/${videoInformation.videoId}`);
+        });
+    }
+    
     async function fetchPageInformation(needed = true) {
         if (needed) {
             if (pageInformation.searchEndpoint != null || window.self !== window.top) return;
@@ -291,7 +314,7 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
 
             // Scrapping internal values
             const pageRequest = await GMxmlHttpRequest({
-                url: pageInformation.website,
+                url: `${pageInformation.website}https://www.youtube.com/watch?v=${videoInformation.videoId}`,
                 method: "GET",
                 referrerPolicy: "strict-origin-when-cross-origin",
                 headers: fetchHeaders,
@@ -302,23 +325,42 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
             const pageDocument = parser.parseFromString(
                 policy?.createHTML(pageRequest.responseText) ?? pageRequest.responseText, "text/html");
     
+            
             let scrappedScriptInnerHTML = "";
 
             pageDocument.querySelectorAll("script").forEach((scriptElement) => {
                 const scriptHTML = scriptElement.innerHTML;
-
-                if (scriptHTML.includes("k_url_search") || scriptHTML.includes("k_analyze_url") ||
-                    scriptHTML.includes("k_time") || scriptHTML.includes("k_page"))
-                        scrappedScriptInnerHTML += "\n" + scriptHTML;
-                    //return;
+                console.log(scriptHTML);
+                
+                if (pageInformation.ajaxLike) {
+                    if (scriptHTML.includes("k_url_search") || scriptHTML.includes("k_analyze_url") ||
+                        scriptHTML.includes("k_time") || scriptHTML.includes("k_page"))
+                            scrappedScriptInnerHTML += "\n" + scriptHTML;    
+                } else {
+                    if (scriptHTML.includes("window.__NUXT__"))
+                        scrappedScriptInnerHTML = scriptHTML;
+                }
             });
     
-            const pageValues = decipherVariables(scrappedScriptInnerHTML);
+            const regex = /window\.__NUXT__\.config\s*=\s*({[\s\S]*?})\s*$/;
+            
+            console.log("esdfdf", scrappedScriptInnerHTML.match(regex));
+            const pageValues = pageInformationIfAjaxLike(
+                decipherVariables(scrappedScriptInnerHTML), 
+                JSON.parse(
+                    scrappedScriptInnerHTML.match(regex)[1]
+                    .replace(/([{,]\s*)(\w+)\s*:/g, '$1"$2":') // Add quotes around keys
+                    .replace(/'/g, '"') // Replace single quotes with double quotes
+                    .replace(/,\s*}/g, '}') // Remove trailing commas before closing curly braces
+                    .replace(/,\s*]/g, ']') // Remove trailing commas before closing square brackets
+                ));
             pageInformation.pageValues = pageValues;
-    
-            pageInformation.searchEndpoint = pageValues['k_url_search'] ?? pageValues['k_analyze_url'];
+
+            let publicConfiguration = pageValues['public'];
+            pageInformation.searchEndpoint = pageInformationIfAjaxLike(pageValues['k_url_search'] ?? pageValues['k_analyze_url'], publicConfiguration['apiBase']);
             pageInformation.convertEndpoint = pageValues['k_url_convert'] ?? pageValues['k_convert_url'];
             pageInformation.checkingEndpoint = pageValues['k_url_check_task'];
+            console.log(pageInformation)
 
             showLoadingIcon(false);
         } 
@@ -478,28 +520,44 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
 
         if (!videoType) return result;
 
-        const formData = new FormData();
-        const link = `https://www.youtube.com/watch?v=${videoId}`;
-        formData.append('q', link);
-        formData.append('query', link);
-        formData.append('vt', 'downloader');
-        formData.append('k_query', link);
-        formData.append('k_page', 'home');
-        formData.append('hl', 'en');
-        formData.append('q_auto', '1');
-        const requestBody = new URLSearchParams(formData).toString();
+        let requestUrl = pageInformationIfAjaxLike(
+            pageInformation.searchEndpoint, 
+            `${pageInformation.searchEndpoint}/api/v4/info/${videoInformation.videoId}`
+        );
+        let requestBody = undefined;
+        
+        if (pageInformation.ajaxLike) {
+            const link = `https://www.youtube.com/watch?v=${videoId}`;
+            const formData = new FormData();
+            formData.append('q', link);
+            formData.append('query', link);
+            formData.append('vt', 'downloader');
+            formData.append('k_query', link);
+            formData.append('k_page', 'home');
+            formData.append('hl', 'en');
+            formData.append('q_auto', '1');
+            requestBody = new URLSearchParams(formData).toString();
+        } else {
+            fetchHeaders = undefined;
+        }
 
+        console.log("amigood2", fetchHeaders);
         async function tryRequest() {
-            const request = await GMxmlHttpRequest({
-                url: pageInformation.searchEndpoint,
-                method: "POST",
-                headers: fetchHeaders,
-                data: requestBody,
-                responseType: 'text',
-            });
-
-            //console.trace(`[YouTubeDL] Debug response from server (${request.status}): ${request.responseText}`);
-            result = JSON.parse(request.responseText);
+            if (pageInformation.ajaxLike) {
+                const request = await GMxmlHttpRequest({
+                    url: requestUrl,
+                    method: pageInformationIfAjaxLike("POST", "GET"),
+                    headers: fetchHeaders,
+                    data: requestBody,
+                    responseType: 'text',
+                });
+    
+                console.trace(`[YouTubeDL] Debug response from server [${requestUrl}] (${request.status}): ${request.responseText}`);
+                result = JSON.parse(request.responseText);
+            } else {
+                const request = await fetchNonAjaxMediaInformation();
+                console.log(request);
+            }
         }
 
         try {
@@ -509,8 +567,8 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
             if (result.status == 'error') {
                 const { k__token, k_time } = pageInformation.pageValues;
 
-                formData.append('k_exp', k_time);
-                formData.append('k_token', k__token);
+                formData?.append('k_exp', k_time);
+                formData?.append('k_token', k__token);
                 await tryRequest();
             }
 
@@ -996,20 +1054,21 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
 
         window.top.addEventListener('message', async (event) => {
             if (typeof(event.data) != 'object' || !event.isTrusted) return;
-
             const data = event.data;
 
             const title = data["title"];
             const object = data["object"];
             if (title == null) return;
 
+            console.log(event);
             // check if in youtube no cookie domain (with extra acceptance for regular youtube embed)
             if (event.origin !== "https://www.youtube.com" &&
-                event.origin !== "https://www.youtube-nocookie.com") return;
+                event.origin !== "https://www.youtube-nocookie.com" &&
+                event.origin !== "https://download.y2api.com") return;
 
             switch (title) {
                 case "YoutubeDL_outerInject":
-                    if (hasOuterInjectedFromTop) return;
+                    if (hasOuterInjectedFromTop) break;
                     // cross window communication for proxy windows to have interactivity
                     try {
                         // show flickering and loading
@@ -1040,6 +1099,9 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
                 case "YoutubeDL_togglePopupElement":
                     await togglePopupElement(object);
                     break;
+                case "YouTubeDL_fetchMediaInformation":
+                    resolveCurrentMediaInformationFetch(object);
+                    break;
             }
         });
 
@@ -1060,6 +1122,7 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
             const title = data["title"];
             const object = data["object"];
             const passcode = data["passcode"];
+            console.log(data);
             if (title == null || passcode != "spaghetti") return;
 
             switch (title) {
@@ -1069,6 +1132,13 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
                     break;
                 case "YoutubeDL_showError":
                     console.error("[YoutubeDL] Error coming from proxy window:", object);
+                    break;
+                case "YouTubeDL_fetchMediaInformation":
+                    window.self.fetch(object).then(async(response) => sendToTopWindow("YouTubeDL_fetchMediaInformation", { 
+                        responseStatus: response.status, 
+                        responseText: await response.text(), 
+                        responseHeaders: JSON.stringify(response.headers)
+                    }));
                     break;
             }
         });
@@ -1508,6 +1578,7 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
 
     initialize();
     checkForUpdates();
+
 
     setInterval(checkUrlChange, 500);
     window.onhashchange = checkUrlChange;
