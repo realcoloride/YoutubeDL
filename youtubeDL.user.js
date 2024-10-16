@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YoutubeDL
 // @namespace    https://www.youtube.com/
-// @version      1.1.5
+// @version      1.1.6
 // @description  Download youtube videos at the comfort of your browser.
 // @author       realcoloride
 // @match        https://www.youtube.com/*
@@ -49,7 +49,7 @@
         pageValues : {}
     }
 
-    let version = '1.1.5';
+    let version = '1.1.6';
 
     // Process:
     // Search -> Checking -> Convert by -> Convert using c_server
@@ -577,6 +577,14 @@ In the meantime you can:
 
         try {
             await tryRequest();
+
+            if (result["mess"] == "Token expired") {
+                alert("[YouTubeDL] 🛑 The downloading token expired, but do not panic! Just try to download again. Press OK to reload.");
+                changeLoadingText("Reloading information...");
+                await reloadMedia();
+
+                return;
+            }
 
             // first retry with extra form details (sometimes some domain require it for some reason)
             if (result.status == 'error') {
