@@ -581,6 +581,8 @@ In the meantime you can:
             if (result["mess"] == "Token expired") {
                 alert("[YouTubeDL] 🛑 The downloading token expired, but do not panic! Just try to download again. Press OK to reload.");
                 changeLoadingText("Reloading information...");
+                togglePopupLoading(true);
+                await fetchPageInformation();
                 await reloadMedia();
 
                 return;
