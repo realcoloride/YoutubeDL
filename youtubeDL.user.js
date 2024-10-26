@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YoutubeDL
 // @namespace    https://www.youtube.com/
-// @version      1.1.6
+// @version      1.1.7
 // @description  Download youtube videos at the comfort of your browser.
 // @author       realcoloride
 // @match        https://www.youtube.com/*
@@ -49,7 +49,7 @@
         pageValues : {}
     }
 
-    let version = '1.1.6';
+    let version = '1.1.7';
 
     // Process:
     // Search -> Checking -> Convert by -> Convert using c_server
@@ -308,6 +308,12 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
 
             currentNonAjaxiFrame.onload = () => sendToBottomWindows("YouTubeDL_fetchMediaInformation", `${pageInformation.searchEndpoint}/api/v4/info/${videoInformation.videoId}`, currentNonAjaxiFrame);
         });
+    }
+
+    function resetEndpoints() {
+        pageInformation.searchEndpoint = null;
+        pageInformation.convertEndpoint = null;
+        pageInformation.checkingEndpoint = null;
     }
 
     async function fetchPageInformation(needed = true) {
@@ -664,7 +670,8 @@ In the meantime you can:
             if (button.disabled) button.disabled = false
         }
 
-        async function retryWith(url) {
+        async function retryWith(url, isCloudflare = false) {
+            if (isCloudflare) alert("[YouTubeDL] 👋 Before you continue downloading...\n👉 A cloudflare protection page might open in a new tab and require you to click on a ✅ checkbox to download the file.");
             GM.openInTab(url);
 
             updatePopupButton(button, 'Downloaded!');
@@ -681,7 +688,7 @@ In the meantime you can:
             onload: async function(response) {
                 if (response.status == 403) {
                     if (detectCloudflare(response.responseText)) {
-                        await retryWith(response.finalUrl);
+                        await retryWith(response.finalUrl, true);
                         return;
                     }
 
@@ -1066,7 +1073,11 @@ In the meantime you can:
 
         const request = await getMediaInformation();
         if (request.status != 'ok') { fail(request); return; }
-        if (request.status == 'cancel') { await reloadMedia(); return; }
+        if (request.status == 'cancel') { 
+            resetEndpoints();
+            await reloadMedia(); 
+            return; 
+        }
 
         try {
             if (hasLoadedMedia) return;
