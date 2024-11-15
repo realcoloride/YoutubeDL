@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YoutubeDL
 // @namespace    https://www.youtube.com/
-// @version      1.1.7
+// @version      1.1.8
 // @description  Download youtube videos at the comfort of your browser.
 // @author       realcoloride
 // @match        https://www.youtube.com/*
@@ -41,7 +41,7 @@
         loaded : false,
         ajaxLike: true,
         enableBubbleSwap: false,
-        website : "https://snapsave.io/",
+        website : "https://utomp3.com/",
         searchEndpoint : null,
         convertEndpoint : null,
         checkingEndpoint : null,
@@ -49,7 +49,7 @@
         pageValues : {}
     }
 
-    let version = '1.1.7';
+    let version = '1.1.8';
 
     // Process:
     // Search -> Checking -> Convert by -> Convert using c_server
@@ -325,7 +325,7 @@ Try to refresh the page, otherwise, reinstall the plugin or report the issue.`;
 
             // Scrapping internal values
             const pageRequest = await GMxmlHttpRequest({
-                url: `${pageInformation.website}https://www.youtube.com/watch?v=${videoInformation.videoId}`,
+                url: pageInformation.website,
                 method: "GET",
                 referrerPolicy: "strict-origin-when-cross-origin",
                 headers: fetchHeaders,
@@ -555,14 +555,14 @@ In the meantime you can:
         if (pageInformation.ajaxLike) {
             const link = `https://www.youtube.com/watch?v=${videoId}`;
             const formData = new FormData();
-            formData.append('q', link);
-            // formData.append('query', link);
+            // formData.append('q', link);
+            formData.append('query', link);
             // formData.append('vt', 'downloader');
             formData.append('vt', 'home');
             // formData.append('k_query', link);
             // formData.append('k_page', 'home');
-            formData.append('k_token', pageInformation.pageValues.k__token);
-            formData.append('k_exp', pageInformation.pageValues.k_time);
+            // formData.append('k_token', pageInformation.pageValues.k__token);
+            // formData.append('k_exp', pageInformation.pageValues.k_time);
             // formData.append('hl', 'en');
             // formData.append('q_auto', '1');
             requestBody = new URLSearchParams(formData).toString();
@@ -671,7 +671,7 @@ In the meantime you can:
         }
 
         async function retryWith(url, isCloudflare = false) {
-            if (isCloudflare) alert("[YouTubeDL] 👋 Before you continue downloading...\n👉 A cloudflare protection page might open in a new tab and require you to click on a ✅ checkbox to download the file.");
+            if (isCloudflare) alert("[YouTubeDL] 👋 Before you continue downloading...\n\n👉 A cloudflare protection page might open in a new tab and require you to click on a ✅ checkbox to download the file.\n\nClick OK when you read and understood.");
             GM.openInTab(url);
 
             updatePopupButton(button, 'Downloaded!');
@@ -1645,7 +1645,6 @@ In the meantime you can:
 
     initialize();
     checkForUpdates();
-
 
     setInterval(checkUrlChange, 500);
     window.onhashchange = checkUrlChange;
